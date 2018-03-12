@@ -40,7 +40,7 @@ private:
 
 
 	// Could modify by using rosparam
-	int binary_threshold = 110;
+	int lane_binary_threshold = 110;
 	int control_factor = 25;
 	int throttle = 1515;
 
@@ -138,12 +138,12 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr& image)
 //			break;
 		}
 
-		nh.getParam("bin_thres", binary_threshold);
+		nh.getParam("lane_bin_thres", lane_binary_threshold);
 		nh.getParam("control_factor", control_factor);
 		nh.getParam("throttle", throttle);
 
 		// For test
-		cout << "bin_thres: " << binary_threshold << endl;
+		cout << "lane_bin_thres: " << lane_binary_threshold << endl;
 		cout << "control_factor: " << control_factor << endl;
 
 		Roi = frame(Rect(0, length / 2, width, length / 2));
@@ -157,7 +157,7 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr& image)
 		split(hsv, hsv_planes);
 		hsv_s = hsv_planes[1];  //s¸¸ µû±â
 		*/
-		double bb = threshold(gray, b, binary_threshold, 255, THRESH_BINARY);
+		double bb = threshold(gray, b, lane_binary_threshold, 255, THRESH_BINARY);
 		//double aa = threshold(hsv_s, a, 110, 255, THRESH_BINARY);
 
 		//bi = a + b; // bgr, hsv ÀÌÁøÈ­ µÈ°Í ÇÕÄ¡±â 
