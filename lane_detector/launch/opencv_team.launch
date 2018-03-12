@@ -12,8 +12,8 @@
 	</node>
 
 	<node pkg="lane_detector" type="lane_detector" name="lane_detector">
-		<param name="bin_thres" value="110" />	
-		<param name="control_factor" value="25" />
+		<param name="bin_thres" value="215" />	
+		<param name="control_factor" value="45" />
 		<param name="throttle" value="1515" />
 		<remap from="/lane_detector/write" to="write" />
 	</node>
