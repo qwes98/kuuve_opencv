@@ -1,0 +1,28 @@
+<launch>
+	<!--include file="$(find usb_cam)/launch/usb_cam-test.launch"-->
+
+	<node name="usb_cam" pkg="usb_cam" type="usb_cam_node" output="screen" >
+		<param name="video_device" value="/dev/video0" />
+		<param name="image_width" value="640" />
+		<param name="image_height" value="480" />
+		<param name="pixel_format" value="yuyv" />
+		<param name="camera_frame_id" value="usb_cam" />
+		<param name="io_method" value="mmap"/>
+		<param name="framerate" value="40"/>
+	</node>
+
+	<node pkg="crosswalk_stop" type="crosswalk_stop" name="crosswalk_stop">
+		<param name="lane_bin_thres" value="215" />	
+		<param name="cross_bin_thres" value="180" />
+		<param name="control_factor" value="45" />
+		<param name="throttle" value="1515" />
+		<!-- (stop_distance = 0) == center of frame, top of binary -->
+		<param name="stop_distance" value="0.75" />
+		<remap from="/crosswalk_stop/write" to="write" />
+	</node>
+
+	<node pkg="serial_example" type="serial_read_and_write_node" name="serial_node">
+
+	</node>
+
+</launch>
