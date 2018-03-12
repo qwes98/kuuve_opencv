@@ -16,69 +16,96 @@
 #define length 540/2
 
 //ÇÑ Á÷¼±À¸·Î º¸´Â ÀÓ°è°ª.
-#define THRESHOLD 5  //5
+#define PIXEL_THRESHOLD 5  //5
+
+
 
 // ¶óÀÎ À§Ä¡
 #define LINE1 -25
 #define LINE2 -30
 #define LINE3 -15
 
-ros::Publisher control_pub;
 
-double avg = 0;
-int temp = 0;
-double angle = 0.0;
+class LaneDetector
+{
+public:
+	LaneDetector();
+	void imageCallback(const sensor_msgs::ImageConstPtr& image);
+
+private:
+	// Ros variables
+	ros::NodeHandle nh;
+	ros::Publisher control_pub;
+	ros::Subscriber image_sub;
 
 
-int fps = 500;
+	// Could modify by using rosparam
+	int binary_threshold = 110;
+	int control_factor = 25;
+
+	double avg = 0.0;
+	int temp = 0;
+	double angle = 0.0;
 
 
-Mat frame, gray, bi;
-Mat Roi;
-Mat hsv;
-Mat hsv_s;
-Mat a, b;
+	int fps = 500;
 
-int framecount1_R = 0;
-int framecount1_L = 0;
 
-int framecount2_R = 0;
-int framecount2_L = 0;
+	Mat frame, gray, bi;
+	Mat Roi;
+	Mat hsv;
+	Mat hsv_s;
+	Mat a, b;
 
-int framecount3_R = 0;
-int framecount3_L = 0;
+	int framecount1_R = 0;
+	int framecount1_L = 0;
 
-// Ã¹¹øÂ° ÁÂÇ¥ ( Ã¹¹øÂ° ÇÁ·¹ÀÓ )
-int r0_p1 = 0;
-int l0_p1 = 0;
+	int framecount2_R = 0;
+	int framecount2_L = 0;
 
-int r0_p2=0;
-int l0_p2=0;
+	int framecount3_R = 0;
+	int framecount3_L = 0;
 
-int r0_p3=0;
-int l0_p3=0;
+	// Ã¹¹øÂ° ÁÂÇ¥ ( Ã¹¹øÂ° ÇÁ·¹ÀÓ )
+	int r0_p1 = 0;
+	int l0_p1 = 0;
 
-// ¿ÞÂÊÁÂÇ¥, ¿À¸¥ÂÊ ÁÂÇ¥
-Point right_P1;
-Point left_P1;
+	int r0_p2=0;
+	int l0_p2=0;
 
-Point right_P2;
-Point left_P2;
+	int r0_p3=0;
+	int l0_p3=0;
 
-Point right_P3;
-Point left_P3;
+	// ¿ÞÂÊÁÂÇ¥, ¿À¸¥ÂÊ ÁÂÇ¥
+	Point right_P1;
+	Point left_P1;
 
-Point middle;
+	Point right_P2;
+	Point left_P2;
 
-LaneDetect linedetect;
+	Point right_P3;
+	Point left_P3;
 
-string tmp_control_value = "";
-std_msgs::String control_msg;
+	Point middle;
 
-void imageCallback(const sensor_msgs::ImageConstPtr& image)
+	LaneDetect linedetect;
+
+	string tmp_control_value = "";
+	std_msgs::String control_msg;
+
+	double sum = 0;
+};
+
+LaneDetector::LaneDetector()
+{
+	nh = ros::NodeHandle("~");
+	control_pub = nh.advertise<std_msgs::String>("write", 100);
+	image_sub = nh.subscribe("/usb_cam/image_raw", 100, &LaneDetector::imageCallback, this);
+}
+
+void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr& image)
 {
 
-		double sum = 0;
 //	delete these comments if you get images from camera directly
 //	for (;;)
 //	{
@@ -108,6 +135,13 @@ void imageCallback(const sensor_msgs::ImageConstPtr& image)
 //			break;
 		}
 
+		nh.getParam("bin_thres", binary_threshold);
+		nh.getParam("control_factor", control_factor);
+
+		// For test
+		cout << "bin_thres: " << binary_threshold << endl;
+		cout << "control_factor: " << control_factor << endl;
+
 		Roi = frame(Rect(0, length / 2, width, length / 2));
 		//cvtColor(Roi, hsv, COLOR_BGR2HSV);
 		cvtColor(Roi, gray, COLOR_BGR2GRAY);
@@ -119,7 +153,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& image)
 		split(hsv, hsv_planes);
 		hsv_s = hsv_planes[1];  //s¸¸ µû±â
 		*/
-		double bb = threshold(gray, b, 110, 255, THRESH_BINARY);
+		double bb = threshold(gray, b, binary_threshold, 255, THRESH_BINARY);
 		//double aa = threshold(hsv_s, a, 110, 255, THRESH_BINARY);
 
 		//bi = a + b; // bgr, hsv ÀÌÁøÈ­ µÈ°Í ÇÕÄ¡±â 
@@ -153,25 +187,25 @@ void imageCallback(const sensor_msgs::ImageConstPtr& image)
 		if (framecount3_R <1)	r0_p3 = linedetect.find_R0_x(bi, bi.rows /2 + LINE3, &framecount3_R , r0_p3);
 
 		// Æ÷ÀÎÆ® ±¸ÇÏ±â
-		right_P1.x = linedetect.find_RN_x(bi, r0_p1, LINE1, THRESHOLD);
+		right_P1.x = linedetect.find_RN_x(bi, r0_p1, LINE1, PIXEL_THRESHOLD);
 		right_P1.y = bi.rows / 2 + LINE1;
 		r0_p1 = right_P1.x;
-		left_P1.x = linedetect.find_LN_x(bi, l0_p1, LINE1, THRESHOLD);
+		left_P1.x = linedetect.find_LN_x(bi, l0_p1, LINE1, PIXEL_THRESHOLD);
 		left_P1.y = bi.rows / 2 + LINE1;
 		l0_p1 = left_P1.x;
 		
 
-		right_P2.x = linedetect.find_RN_x(bi, r0_p2, LINE2, THRESHOLD);
+		right_P2.x = linedetect.find_RN_x(bi, r0_p2, LINE2, PIXEL_THRESHOLD);
 		right_P2.y = bi.rows / 2 + LINE2;
 		r0_p2 = right_P2.x;
-		left_P2.x = linedetect.find_LN_x(bi, l0_p2, LINE2, THRESHOLD);
+		left_P2.x = linedetect.find_LN_x(bi, l0_p2, LINE2, PIXEL_THRESHOLD);
 		left_P2.y = bi.rows / 2 + LINE2;
 		l0_p2 = left_P2.x;
 
-		right_P3.x = linedetect.find_RN_x(bi, r0_p3, LINE3, THRESHOLD);
+		right_P3.x = linedetect.find_RN_x(bi, r0_p3, LINE3, PIXEL_THRESHOLD);
 		right_P3.y = bi.rows / 2 + LINE3;
 		r0_p3 = right_P3.x;
-		left_P3.x = linedetect.find_LN_x(bi, l0_p3, LINE3, THRESHOLD);
+		left_P3.x = linedetect.find_LN_x(bi, l0_p3, LINE3, PIXEL_THRESHOLD);
 		left_P3.y = bi.rows / 2 + LINE3;
 		l0_p3 = left_P3.x;
 
@@ -225,7 +259,6 @@ void imageCallback(const sensor_msgs::ImageConstPtr& image)
 		ROS_INFO("Angle: %f", angle);
 
 		int angle_for_msg = 0;	// For parsing double value to int
-		int control_factor = 25;
 		// arduino steering range: 1100 < steer < 1900
 		if(angle < control_factor && angle > (-1) * control_factor)
 			angle_for_msg = static_cast<int>(1500 + 400 / control_factor * angle);
@@ -253,12 +286,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& image)
 int main(int argc, char** argv)
 {
 	ros::init(argc, argv, "lane_detector");
-	ros::NodeHandle nh;
 
-	control_pub = nh.advertise<std_msgs::String>("write", 100);
-
-	ros::Subscriber image_sub = nh.subscribe("/usb_cam/image_raw", 100, imageCallback);
-
+	LaneDetector lane_detector;
 	/* get images from camera directly
 	VideoCapture cap(1);
 	//cap.open("cameraimage_color_camera3.mp4");
