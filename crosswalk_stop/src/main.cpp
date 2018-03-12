@@ -61,6 +61,7 @@ private:
 	Mat hsv;
 	Mat hsv_s;
 	Mat a, b;
+	Mat cross_bi;
 
 	int framecount1_R = 0;
 	int framecount1_L = 0;
@@ -169,9 +170,12 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr& image)
 		*/
 		double bb = threshold(gray, b, lane_binary_threshold, 255, THRESH_BINARY);
 		//double aa = threshold(hsv_s, a, 110, 255, THRESH_BINARY);
+		bi = b;
+
+		bb = threshold(gray, b, cross_binary_threshold, 255, THRESH_BINARY);
+		cross_bi = b;
 
 		//bi = a + b; // bgr, hsv ÀÌÁøÈ­ µÈ°Í ÇÕÄ¡±â 
-		bi = b;
 
 
 		// ¾Æ ±×³É °¥¶§´Â ÄÜÀ» Â÷¼±À¸·Î ÀÎ½ÄÇÒ ÇÊ¿ä ¾ø´Ù!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -293,7 +297,9 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr& image)
 		circle(bi, Point(bi.cols * 4 / 8, bi.rows * stop_distance) , 5, Scalar(255 * (1 - cross_detected), 0, 255 * cross_detected), 5);
 		circle(bi, Point(bi.cols * 5 / 8, bi.rows * stop_distance) , 5, Scalar(255 * (1 - cross_detected), 0, 255 * cross_detected), 5);
 
-		imshow("binary img", bi); 
+
+		imshow("lane binary", bi); 
+		imshow("cross binary", cross_bi);
 		imshow("frame", frame);
 		waitKey(3);
 
