@@ -68,7 +68,7 @@ int main (int argc, char** argv){
             ROS_INFO_STREAM("Reading from serial port");
             std_msgs::String result;
             result.data = ser.read(ser.available());
-            ROS_INFO_STREAM("Read: " << result.data);
+            // ROS_INFO_STREAM("Read: " << result.data);
             read_pub.publish(result);
         }
         loop_rate.sleep();

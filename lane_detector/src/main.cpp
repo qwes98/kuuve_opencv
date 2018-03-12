@@ -42,6 +42,7 @@ private:
 	// Could modify by using rosparam
 	int binary_threshold = 110;
 	int control_factor = 25;
+	int throttle = 1515;
 
 	double avg = 0.0;
 	int temp = 0;
@@ -91,6 +92,7 @@ private:
 	LaneDetect linedetect;
 
 	string tmp_control_value = "";
+	string tmp_throttle_value = "";
 	std_msgs::String control_msg;
 
 	double sum = 0;
@@ -99,6 +101,7 @@ private:
 LaneDetector::LaneDetector()
 {
 	nh = ros::NodeHandle("~");
+	// NodeHangle("~") -> (write -> /lane_detector/write)
 	control_pub = nh.advertise<std_msgs::String>("write", 100);
 	image_sub = nh.subscribe("/usb_cam/image_raw", 100, &LaneDetector::imageCallback, this);
 }
@@ -137,6 +140,7 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr& image)
 
 		nh.getParam("bin_thres", binary_threshold);
 		nh.getParam("control_factor", control_factor);
+		nh.getParam("throttle", throttle);
 
 		// For test
 		cout << "bin_thres: " << binary_threshold << endl;
@@ -268,10 +272,11 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr& image)
 			angle_for_msg = -1500;
 
 		tmp_control_value = to_string(angle_for_msg);
+		tmp_throttle_value = to_string(throttle);
 		// cout << "test angle: " << tmp_control_value << endl;
 
-		control_msg.data = tmp_control_value + ",1513,";	// Make message
-		cout << "test msg: " << control_msg.data << endl;
+		control_msg.data = tmp_control_value + "," + tmp_throttle_value + ",";	// Make message
+		cout << "control msg: " << control_msg.data << endl;
 
 		control_pub.publish(control_msg);
 
