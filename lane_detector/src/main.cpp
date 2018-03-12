@@ -267,9 +267,9 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr& image)
 		if(angle < control_factor && angle > (-1) * control_factor)
 			angle_for_msg = static_cast<int>(1500 + 400 / control_factor * angle);
 		else if(angle >= control_factor)
-			angle_for_msg = 1500;
+			angle_for_msg = 1100;
 		else if(angle <= (-1) * control_factor)
-			angle_for_msg = -1500;
+			angle_for_msg = 1900;
 
 		tmp_control_value = to_string(angle_for_msg);
 		tmp_throttle_value = to_string(throttle);
