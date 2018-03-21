@@ -12,7 +12,9 @@
 	</node>
 
 	<node pkg="lane_detector" type="lane_detector" name="lane_detector">
-		<param name="lane_bin_thres" value="215" />	
+		<param name="resize_width" value="480" />
+		<param name="resize_height" value="270" />
+		<param name="bin_thres" value="120" />	
 		<param name="control_factor" value="45" />
 		<param name="throttle" value="1515" />
 		<remap from="/lane_detector/write" to="write" />

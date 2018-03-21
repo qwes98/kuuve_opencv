@@ -1,8 +1,4 @@
-/* Test */
-
-// #pragma warning(disable: 4819)
-
-#include "lane_detector/LineDetector.h"
+#include "lane_detector/LaneDetector.h"
 #include <ros/ros.h>
 #include <std_msgs/String.h>
 #include <cmath>
@@ -11,107 +7,183 @@
 #include <image_transport/image_transport.h>
 #include <sensor_msgs/image_encodings.h>
 
-//È­¸é resize
-#define width 960/2
-#define length 540/2
+using namespace std;
+using namespace cv;
 
-//ÇÑ Á÷¼±À¸·Î º¸´Â ÀÓ°è°ª.
-#define PIXEL_THRESHOLD 5  //5
-
-
-
-// ¶óÀÎ À§Ä¡
-#define LINE1 -25
-#define LINE2 -30
-#define LINE3 -15
-
-
-class LaneDetector
+class LaneDetectorNode
 {
 public:
-	LaneDetector();
+	LaneDetectorNode();
 	void imageCallback(const sensor_msgs::ImageConstPtr& image);
+	void getRosParam()
+	{
+		nh_.getParam("resize_width", width);
+		nh_.getParam("resize_height", height);
+		nh_.getParam("bin_thres", binary_threshold_);
+		nh_.getParam("control_factor", control_factor_);
+		nh_.getParam("throttle", throttle_);
+	}
+
+	void printData(double ms, double avg, std_msgs::String control_msg)
+	{
+		cout << "it took : " << ms << "ms." << "avg: " << avg << " fps : " << 1000 / avg << endl;
+		cout << "#### Control ####" << endl;
+		cout << "steering angle: " << (int)angle_ << endl;
+		cout << "control msg: " << control_msg.data << endl;
+		cout << "#### Ros Param ####" << endl;
+		cout << "bin_thres: " << binary_threshold_ << endl;
+		cout << "control_factor: " << control_factor_ << endl;
+		cout << "---------------------------------" << endl;
+	}
+
+	void getRoiBinaryImg()
+	{
+		Mat roi_gray_img;
+		Mat roi_color_img = resized_img_(Rect(0, height / 2, width, height / 2));
+		cvtColor(roi_color_img, roi_gray_img, COLOR_BGR2GRAY);
+		threshold(roi_gray_img, roi_binary_img_, binary_threshold_, 255, THRESH_BINARY);
+	}
+
+	void detectLeftInitialPoint()
+	{
+		last_left_point_.x = lanedetector_.find_L0_x(roi_binary_img_, detect_y_offset_, &detect_first_left_point_ , last_left_point_.x);
+		last_left_point_.y = roi_binary_img_.rows * detect_y_offset_ / 100;
+	}
+
+	void detectRightInitialPoint()
+	{
+		last_right_point_.x = lanedetector_.find_R0_x(roi_binary_img_, detect_y_offset_, &detect_first_right_point_ , last_right_point_.x);
+		last_right_point_.y = roi_binary_img_.rows * detect_y_offset_ / 100;
+	}
+
+	void updateNextPoint()
+	{
+		cur_right_point_.x = lanedetector_.find_RN_x(roi_binary_img_, last_right_point_.x, detect_y_offset_, PIXEL_THRESHOLD);
+		cur_right_point_.y = roi_binary_img_.rows * detect_y_offset_ / 100;
+		last_right_point_.x = cur_right_point_.x;
+		cur_left_point_.x = lanedetector_.find_LN_x(roi_binary_img_, last_left_point_.x, detect_y_offset_, PIXEL_THRESHOLD);
+		cur_left_point_.y = roi_binary_img_.rows * detect_y_offset_ / 100;
+		last_left_point_.x = cur_left_point_.x;
+	}
+
+	double calculateAngle()
+	{
+		int dx = lane_middle_.x - roi_binary_img_.cols / 2;
+		int dy = roi_binary_img_.rows - lane_middle_.y;
+		return atan2(dx, dy) * 180 / CV_PI;
+	}
+
+	double calculateDetectionTime(int64 start_time, int64 finish_time)
+	{
+		return (finish_time - start_time) * 1000 / getTickFrequency();
+	}
+
+	bool detectOnlyOneLine()
+	{
+		return abs(cur_right_point_.x - cur_left_point_.x) < 15;
+	}
+
+	void visualizeLine()
+	{
+		line(resized_img_, cur_right_point_ + Point(0, height / 2), cur_left_point_ + Point(0, height / 2), Scalar(0, 255, 0), 5);
+		line(resized_img_, lane_middle_ + Point(0, height / 2), Point(resized_img_.cols / 2, resized_img_.rows), Scalar(0, 0, 255), 5);
+	}
+
+	void showImg()
+	{
+		imshow("binary img", roi_binary_img_);
+		imshow("frame", resized_img_);
+		waitKey(3);
+	}
+
+	int calculateSteerValue()
+	{
+		int angle_for_msg = 0;	// For parsing double value to int
+		// arduino steering range: 1100 < steer < 1900
+		if(angle_ < control_factor_ && angle_ > (-1) * control_factor_)
+			angle_for_msg = static_cast<int>(1500 + 400 / control_factor_ * angle_);
+		else if(angle_ >= control_factor_) {
+			angle_for_msg = 1900;
+			angle_ = control_factor_;		// For print angle on console
+		}
+		else if(angle_ <= (-1) * control_factor_) {
+			angle_for_msg = 1100;
+			angle_ = (-1) * control_factor_;
+		}
+
+		return angle_for_msg;
+	}
+
+	std_msgs::String makeControlMsg(int steer_value)
+	{
+		std_msgs::String control_msg;
+		control_msg.data = string(to_string(steer_value)) + "," + string(to_string(throttle_)) + ","; // Make message
+		return control_msg;
+	}
 
 private:
-	// Ros variables
-	ros::NodeHandle nh;
-	ros::Publisher control_pub;
-	ros::Subscriber image_sub;
+	// 화면 resize값
+	// main
+	int width = 960/2;
+	int height = 540/2;
+
+	// 한 직선 보는 임계값
+	const int PIXEL_THRESHOLD = 5;
+
+	// 라인 y 좌표 비율 (0~100)
+	const int detect_y_offset_ = 30;
+
+private:
+	// ros variables
+	ros::NodeHandle nh_;
+	ros::Publisher control_pub_;
+	ros::Subscriber image_sub_;
+
+	// could modify by using rosparam
+	int binary_threshold_ = 110;
+	int control_factor_ = 25;
+	int throttle_ = 1515;
+
+	int frame_count_ = 0;	// for getting average fps
 
 
-	// Could modify by using rosparam
-	int lane_binary_threshold = 110;
-	int control_factor = 25;
-	int throttle = 1515;
+	Mat resized_img_;		// resized image by (width, height)
+	Mat roi_binary_img_;
 
-	double avg = 0.0;
-	int temp = 0;
-	double angle = 0.0;
+  //TODO: 0->true
+	int detect_first_right_point_ = 0;
+	int detect_first_left_point_ = 0;
 
+	Point last_right_point_;
+	Point last_left_point_;
 
-	int fps = 500;
+	// 왼쪽 좌표, 오른쪽 좌표
+	Point cur_right_point_;
+	Point cur_left_point_;
 
+	Point lane_middle_;
 
-	Mat frame, gray, bi;
-	Mat Roi;
-	Mat hsv;
-	Mat hsv_s;
-	Mat a, b;
+	double angle_;
 
-	int framecount1_R = 0;
-	int framecount1_L = 0;
+	LaneDetector lanedetector_;
 
-	int framecount2_R = 0;
-	int framecount2_L = 0;
-
-	int framecount3_R = 0;
-	int framecount3_L = 0;
-
-	// Ã¹¹øÂ° ÁÂÇ¥ ( Ã¹¹øÂ° ÇÁ·¹ÀÓ )
-	int r0_p1 = 0;
-	int l0_p1 = 0;
-
-	int r0_p2=0;
-	int l0_p2=0;
-
-	int r0_p3=0;
-	int l0_p3=0;
-
-	// ¿ÞÂÊÁÂÇ¥, ¿À¸¥ÂÊ ÁÂÇ¥
-	Point right_P1;
-	Point left_P1;
-
-	Point right_P2;
-	Point left_P2;
-
-	Point right_P3;
-	Point left_P3;
-
-	Point middle;
-
-	LaneDetect linedetect;
-
-	string tmp_control_value = "";
-	string tmp_throttle_value = "";
-	std_msgs::String control_msg;
-
-	double sum = 0;
+	double sum_of_detection_time_ = 0;
 };
 
-LaneDetector::LaneDetector()
+LaneDetectorNode::LaneDetectorNode()
 {
-	nh = ros::NodeHandle("~");
+	nh_ = ros::NodeHandle("~");
 	// NodeHangle("~") -> (write -> /lane_detector/write)
-	control_pub = nh.advertise<std_msgs::String>("write", 100);
-	image_sub = nh.subscribe("/usb_cam/image_raw", 100, &LaneDetector::imageCallback, this);
+	control_pub_ = nh_.advertise<std_msgs::String>("write", 100);
+	image_sub_ = nh_.subscribe("/usb_cam/image_raw", 100, &LaneDetectorNode::imageCallback, this);
+
+	last_right_point_.x = 0;
+	last_left_point_.x = 0;
 }
 
-void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr& image)
+void LaneDetectorNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 {
 
-//	delete these comments if you get images from camera directly
-//	for (;;)
-//	{
 		cv_bridge::CvImagePtr cv_ptr;
 		try {
 			cv_ptr = cv_bridge::toCvCopy(image, sensor_msgs::image_encodings::BGR8);
@@ -120,180 +192,77 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr& image)
 			return ;
 		}
 
-		int64 t1 = getTickCount();
+		// Opencv code start
+		int64 start_time = getTickCount();
 
-		temp++;
+		Mat raw_img = cv_ptr->image;
 
-//		cap >> frame;
-		frame = cv_ptr->image;
-
-		resize(frame, frame, Size(width, length));
-
-
-		
-		if (frame.empty())
+		if (raw_img.empty())
 		{
-			cout << "È­¸éÀÌ ºñ¾î ÀÖ¾î¿ä!!" << endl;
+			cout << "frame is empty!" << endl;
 			return;
-//			break;
 		}
 
-		nh.getParam("lane_bin_thres", lane_binary_threshold);
-		nh.getParam("control_factor", control_factor);
-		nh.getParam("throttle", throttle);
+		frame_count_++;
 
-		// For test
-		cout << "lane_bin_thres: " << lane_binary_threshold << endl;
-		cout << "control_factor: " << control_factor << endl;
+		getRosParam();
 
-		Roi = frame(Rect(0, length / 2, width, length / 2));
-		//cvtColor(Roi, hsv, COLOR_BGR2HSV);
-		cvtColor(Roi, gray, COLOR_BGR2GRAY);
-		/*
-		cvtColor(Roi, hsv, COLOR_BGR2HSV);
+		resize(raw_img, resized_img_, Size(width, height));
 
-		vector<Mat> hsv_planes;
+		///////
+		getRoiBinaryImg();
 
-		split(hsv, hsv_planes);
-		hsv_s = hsv_planes[1];  //s¸¸ µû±â
-		*/
-		double bb = threshold(gray, b, lane_binary_threshold, 255, THRESH_BINARY);
-		//double aa = threshold(hsv_s, a, 110, 255, THRESH_BINARY);
-
-		//bi = a + b; // bgr, hsv ÀÌÁøÈ­ µÈ°Í ÇÕÄ¡±â 
-		bi = b;
-
-
-		// ¾Æ ±×³É °¥¶§´Â ÄÜÀ» Â÷¼±À¸·Î ÀÎ½ÄÇÒ ÇÊ¿ä ¾ø´Ù!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-
-
-
-		/*
-		ÀÌÁ¦ ³»°¡ ÇÒ ÀÏ..
-		1. ÀÌÁøÈ­µÈ È­¸é¿¡ ¿Þ¼±¿¡´Â ¿ÞÂÊ Æ÷ÀÎÆ®¸¦, ¿À¸¥¼±¿¡´Â ¿À¸¥ÂÊ Æ÷ÀÎÆ®¸¦ µÐ´Ù.
-		2. ¿ÞÂÊ Æ÷ÀÎÆ®, ¿À¸¥ÂÊ Æ÷ÀÎÆ® Áß½É Ã£±â
-		3. ³ªÀÇ À§Ä¡¿Í ±× Æ÷ÀÎÆ® À§Ä¡ Â÷ÀÌ - > Á¶Çâ°¢ // Áß½É°ú ¿ÞÆ÷ÀÎÆ®, ¿À¸¥ÂÊ Æ÷ÀÎÆ® °Å¸® - > Á¶Çâ ½ºÇÇµå
-		4. Æ÷ÀÎÆ®µéÀÇ À§Ä¡°¡ ÈÅ º¯ÇÏÁö ¾Êµµ·Ï ¿¹¿ÜÃ³¸®.
-		*/
-		
-		// ÃÊ±âÁ¡ ±¸ÇÏ±â
-		if (framecount1_L < 1) {
-			l0_p1 = linedetect.find_L0_x(bi, bi.rows / 2 + LINE1, &framecount1_L , l0_p1);
-			cout << "framecount1_L  " << framecount1_L << endl;
+		// 초기점 구하기
+		if (detect_first_left_point_ == 0) {
+			detectLeftInitialPoint();
 		}
-		if (framecount1_R <1)	r0_p1 = linedetect.find_R0_x(bi, bi.rows /2 + LINE1, &framecount1_R , r0_p1);
 
-		if (framecount2_L < 1) 	l0_p2 = linedetect.find_L0_x(bi, bi.rows / 2 + LINE2, &framecount2_L , l0_p2);
-		if (framecount2_R <1)	r0_p2 = linedetect.find_R0_x(bi, bi.rows /2 + LINE2, &framecount2_R , r0_p2);
+		if (detect_first_right_point_ == 0) {
+			detectRightInitialPoint();
+		}
 
-		if (framecount3_L < 1) 	l0_p3 = linedetect.find_L0_x(bi, bi.rows / 2 + LINE3, &framecount3_L , l0_p3);
-		if (framecount3_R <1)	r0_p3 = linedetect.find_R0_x(bi, bi.rows /2 + LINE3, &framecount3_R , r0_p3);
+		// 포인트 구하기
+		updateNextPoint();
 
-		// Æ÷ÀÎÆ® ±¸ÇÏ±â
-		right_P1.x = linedetect.find_RN_x(bi, r0_p1, LINE1, PIXEL_THRESHOLD);
-		right_P1.y = bi.rows / 2 + LINE1;
-		r0_p1 = right_P1.x;
-		left_P1.x = linedetect.find_LN_x(bi, l0_p1, LINE1, PIXEL_THRESHOLD);
-		left_P1.y = bi.rows / 2 + LINE1;
-		l0_p1 = left_P1.x;
-		
+		lane_middle_ = Point((cur_right_point_.x + cur_left_point_.x) / 2, roi_binary_img_.rows * detect_y_offset_ / 100);
 
-		right_P2.x = linedetect.find_RN_x(bi, r0_p2, LINE2, PIXEL_THRESHOLD);
-		right_P2.y = bi.rows / 2 + LINE2;
-		r0_p2 = right_P2.x;
-		left_P2.x = linedetect.find_LN_x(bi, l0_p2, LINE2, PIXEL_THRESHOLD);
-		left_P2.y = bi.rows / 2 + LINE2;
-		l0_p2 = left_P2.x;
+		angle_ = calculateAngle();
 
-		right_P3.x = linedetect.find_RN_x(bi, r0_p3, LINE3, PIXEL_THRESHOLD);
-		right_P3.y = bi.rows / 2 + LINE3;
-		r0_p3 = right_P3.x;
-		left_P3.x = linedetect.find_LN_x(bi, l0_p3, LINE3, PIXEL_THRESHOLD);
-		left_P3.y = bi.rows / 2 + LINE3;
-		l0_p3 = left_P3.x;
+		int64 finish_time = getTickCount();
 
-		middle = Point((right_P1.x + left_P1.x) / 2, bi.rows / 2 + LINE1);
+		double ms = calculateDetectionTime(start_time, finish_time);
 
-		int dy = middle.x - bi.cols / 2;
-		int dx = bi.rows - middle.y;
-		angle = atan2(dy, dx) * 180 / CV_PI;
+		sum_of_detection_time_ += ms;
+		double avg = sum_of_detection_time_ / frame_count_;
 
-
-		int64 t2 = getTickCount();
-
-		double ms = (t2 - t1) * 1000 / getTickFrequency();
-		sum += ms;
-		avg = sum / temp;
-
-		cout << "---------------------------------" << endl;
-		cout << "it took : " << ms << "ms." << "avg: " << avg << " fps : " << 1000 / avg << endl;
-
-		// ¸¸ÀÏ µÎ Á¡ »çÀÌ °Å¸®°¡ ³Ê¹« °¡±î¿ì¸é ´Ù½Ã ÀÎ½ÄÇØ¶ó - > ÇÑ Â÷¼±À» °°ÀÌ ÀÎ½ÄÇÏ°í ÀÖÀ¸´Ï..
-		if (abs(right_P1.x - left_P1.x) < 15)
+		if (detectOnlyOneLine())
 		{
-			framecount1_L = 0;
-			framecount1_R = 0;
+			detect_first_left_point_ = 0;
+			detect_first_right_point_ = 0;
 		}
 
-		if (abs(right_P2.x - left_P2.x) < 15)
-		{
-			framecount2_L = 0;
-			framecount2_R = 0;
-		}
+		visualizeLine();
+		showImg();
 
-		if (abs(right_P3.x - left_P3.x) < 15)
-		{
-			framecount3_L = 0;
-			framecount3_R = 0;
-		}
+		////////////////////////////
+		int steer_value = calculateSteerValue();
+		std_msgs::String control_msg = makeControlMsg(steer_value);
 
-		
-		//line(frame, left_P + Point(0,length / 2), right_P+ Point(0, length / 2), Scalar(255, 0, 0), 2);
-		line(frame, right_P1 + Point(0, length / 2), left_P1 + Point(0, length / 2), Scalar(0, 255, 0), 5);
-		line(frame, right_P2 + Point(0, length / 2), left_P2 + Point(0, length / 2), Scalar(0, 0, 255), 5);
-		line(frame, right_P3 + Point(0, length / 2), left_P3 + Point(0, length / 2), Scalar(255, 0, 0), 5);
-		line(frame, middle + Point(0, length / 2), Point(frame.cols / 2, frame.rows), Scalar(0, 0, 255), 5);
-		//circle(frame, left_P + Point(0, length / 2), 5, Scalar(255, 0, 0), 5);
-		//circle(frame, right_P + Point(0, length / 2), 5, Scalar(0, 255, 0), 5); 
-		imshow("binary img", bi); 
-		imshow("frame", frame);
-		waitKey(3);
+		printData(ms, avg, control_msg);
+		cout << "width: " << width << endl;
+		cout << "heigth: " << height << endl;
 
-		ROS_INFO("Angle: %f", angle);
-
-		int angle_for_msg = 0;	// For parsing double value to int
-		// arduino steering range: 1100 < steer < 1900
-		if(angle < control_factor && angle > (-1) * control_factor)
-			angle_for_msg = static_cast<int>(1500 + 400 / control_factor * angle);
-		else if(angle >= control_factor)
-			angle_for_msg = 1100;
-		else if(angle <= (-1) * control_factor)
-			angle_for_msg = 1900;
-
-		tmp_control_value = to_string(angle_for_msg);
-		tmp_throttle_value = to_string(throttle);
-		// cout << "test angle: " << tmp_control_value << endl;
-
-		control_msg.data = tmp_control_value + "," + tmp_throttle_value + ",";	// Make message
-		cout << "control msg: " << control_msg.data << endl;
-
-		control_pub.publish(control_msg);
-
-		// Why does this need?
-//		if (waitKey(1000 / fps) >= 0) break;
-
-
-//	}
-
+		control_pub_.publish(control_msg);
 }
 
 int main(int argc, char** argv)
 {
 	ros::init(argc, argv, "lane_detector");
 
-	LaneDetector lane_detector;
-	/* get images from camera directly
+#if 1
+	LaneDetectorNode lane_detector;
+
+#else
 	VideoCapture cap(1);
 	//cap.open("cameraimage_color_camera3.mp4");
 
@@ -302,7 +271,7 @@ int main(int argc, char** argv)
 		cout << "Not opened cap" << endl;
 		return -1;
 	}
-	*/
+#endif
 
 	ros::spin();
 	return 0;
