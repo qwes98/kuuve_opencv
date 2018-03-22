@@ -1,11 +1,11 @@
-#include "lane_detector/LaneDetector.h"
+#include "lane_detector/LinePointDetector.h"
 
 using namespace std;
 using namespace cv;
 
 //TODO: algorithm comments of function - Jiwon Park 03/18/18
 
-int LaneDetector::find_L0_x(Mat binary_img, int detect_y_offset, int *framecount_L , int last_point)
+int LinePointDetector::find_L0_x(Mat binary_img, int detect_y_offset, int last_point)
 {
 	int l0_x = last_point;
 
@@ -17,12 +17,12 @@ int LaneDetector::find_L0_x(Mat binary_img, int detect_y_offset, int *framecount
 			break;
 		}
 	}
-	*framecount_L = *framecount_L + 1;  // framecount 가 0 이면 이게 실행된다. 즉 한번 실행되면 끝
+	left_reset_flag_ = false;
 	return l0_x;
 }
 
 
-int LaneDetector::find_R0_x(Mat binary_img, int detect_y_offset, int *framecount_R ,int last_point)
+int LinePointDetector::find_R0_x(Mat binary_img, int detect_y_offset, int last_point)
 {
 	int r0_x = last_point;
 
@@ -34,12 +34,12 @@ int LaneDetector::find_R0_x(Mat binary_img, int detect_y_offset, int *framecount
 			break;
 		}
 	}
-	*framecount_R = *framecount_R + 1;
+	right_reset_flag_ = false;
 	return r0_x;
 }
 
 
-int LaneDetector::find_LN_x(Mat binary_img, int pre_point, int detect_y_offset, int THRESHOLD)
+int LinePointDetector::find_LN_x(Mat binary_img, int pre_point, int detect_y_offset, const int line_pixel_threshold)
 {
 	int Left_N_x = pre_point;
 
@@ -68,7 +68,7 @@ int LaneDetector::find_LN_x(Mat binary_img, int pre_point, int detect_y_offset, 
 			if (binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100, i) == 255)
 			{
 
-				if ((i > pre_point + THRESHOLD) || (i < pre_point - THRESHOLD))	continue;
+				if ((i > pre_point + line_pixel_threshold) || (i < pre_point - line_pixel_threshold))	continue;
 
 				Left_N_x = i;
 				break;
@@ -82,7 +82,7 @@ int LaneDetector::find_LN_x(Mat binary_img, int pre_point, int detect_y_offset, 
 
 
 
-int LaneDetector::find_RN_x(Mat binary_img, int pre_point, int detect_y_offset, int THRESHOLD)
+int LinePointDetector::find_RN_x(Mat binary_img, int pre_point, int detect_y_offset, const int line_pixel_threshold)
 {
 	int Right_N_x = pre_point;
 
@@ -110,7 +110,7 @@ int LaneDetector::find_RN_x(Mat binary_img, int pre_point, int detect_y_offset, 
 		{
 			if (binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100, binary_img.cols - i) == 255)
 			{
-				if ((binary_img.cols - i > pre_point + THRESHOLD) || (binary_img.cols - i < pre_point - THRESHOLD))	continue;
+				if ((binary_img.cols - i > pre_point + line_pixel_threshold) || (binary_img.cols - i < pre_point - line_pixel_threshold))	continue;
 
 				Right_N_x = binary_img.cols - i;
 				break;
