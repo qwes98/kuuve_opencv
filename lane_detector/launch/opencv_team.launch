@@ -14,14 +14,17 @@
 	<node pkg="lane_detector" type="lane_detector" name="lane_detector">
 		<param name="resize_width" value="480" />
 		<param name="resize_height" value="270" />
-		<param name="steer_max_angle" value="45" />
+		<!-- param name="steer_max_angle" value="45" /-->
+		<param name="steer_max_angle" value="27" />
 
 		<param name="bin_thres" value="110" />	
 		<param name="detect_y_offset" value="30" />	
 		<!--  control_value *= control_factor / 100  -->
 		<param name="control_factor" value="100" />
-		<param name="throttle" value="1515" />
-		<remap from="/lane_detector/write" to="write" />
+		<!-- param name="throttle" value="1515" /-->
+		<param name="throttle" value="2" />
+		<!-- remap from="/lane_detector/write" to="write" /-->
+		<remap from="/lane_detector/ackermann" to="ackermann" />
 	</node>
 
 	<node pkg="serial_example" type="serial_read_and_write_node" name="serial_node">

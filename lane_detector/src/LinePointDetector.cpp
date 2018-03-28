@@ -5,7 +5,13 @@ using namespace cv;
 
 //TODO: algorithm comments of function - Jiwon Park 03/18/18
 
-int LinePointDetector::find_L0_x(Mat binary_img, int detect_y_offset, int last_point)
+bool LinePointDetector::getLeftResetFlag() const { return left_reset_flag_; }
+bool LinePointDetector::getRightResetFlag() const { return right_reset_flag_; }
+
+void LinePointDetector::setLeftResetFlag(const bool left_reset_flag) { left_reset_flag_ = left_reset_flag; }
+void LinePointDetector::setRightResetFlag(const bool right_reset_flag) { right_reset_flag_ = right_reset_flag; }
+
+int LinePointDetector::find_L0_x(const Mat& binary_img, const int detect_y_offset, const int last_point)
 {
 	int l0_x = last_point;
 
@@ -21,8 +27,7 @@ int LinePointDetector::find_L0_x(Mat binary_img, int detect_y_offset, int last_p
 	return l0_x;
 }
 
-
-int LinePointDetector::find_R0_x(Mat binary_img, int detect_y_offset, int last_point)
+int LinePointDetector::find_R0_x(const Mat& binary_img, const int detect_y_offset, const int last_point)
 {
 	int r0_x = last_point;
 
@@ -38,8 +43,7 @@ int LinePointDetector::find_R0_x(Mat binary_img, int detect_y_offset, int last_p
 	return r0_x;
 }
 
-
-int LinePointDetector::find_LN_x(Mat binary_img, int pre_point, int detect_y_offset, const int line_pixel_threshold)
+int LinePointDetector::find_LN_x(const Mat& binary_img, const int pre_point, const int detect_y_offset, const int line_pixel_threshold)
 {
 	int Left_N_x = pre_point;
 
@@ -80,9 +84,7 @@ int LinePointDetector::find_LN_x(Mat binary_img, int pre_point, int detect_y_off
 	return Left_N_x;
 }
 
-
-
-int LinePointDetector::find_RN_x(Mat binary_img, int pre_point, int detect_y_offset, const int line_pixel_threshold)
+int LinePointDetector::find_RN_x(const Mat& binary_img, const int pre_point, const int detect_y_offset, const int line_pixel_threshold)
 {
 	int Right_N_x = pre_point;
 
