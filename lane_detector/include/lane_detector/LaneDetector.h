@@ -26,6 +26,7 @@ public:
 
 	void getRoiBinaryImg(const cv::Point& left_top, const cv::Size& roi_size);
 
+	// main wrapper function
 	int laneDetecting(const cv::Mat& raw_img);
 
 protected:

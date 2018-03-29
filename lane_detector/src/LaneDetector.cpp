@@ -128,70 +128,70 @@ void LaneDetector::reservePointReset()
 
 void LaneDetector::preprocessImg(const cv::Mat& raw_img)
 {
-		resize(raw_img, resized_img_, Size(RESIZE_WIDTH_, RESIZE_HEIGHT_));
+	resize(raw_img, resized_img_, Size(RESIZE_WIDTH_, RESIZE_HEIGHT_));
 
-		getRoiBinaryImg(Point(0, RESIZE_HEIGHT_ / 2), Size(RESIZE_WIDTH_, RESIZE_HEIGHT_ / 2));
+	getRoiBinaryImg(Point(0, RESIZE_HEIGHT_ / 2), Size(RESIZE_WIDTH_, RESIZE_HEIGHT_ / 2));
 }
 
 void LaneDetector::findLanePoints()
 {
-		if(haveToResetLeftPoint()) {
-			resetLeftPoint();
-		}
+	if(haveToResetLeftPoint()) {
+		resetLeftPoint();
+	}
 
-		if (haveToResetRightPoint()) {
-			resetRightPoint();
-		}
+	if (haveToResetRightPoint()) {
+		resetRightPoint();
+	}
 
-		updateNextPoint();
+	updateNextPoint();
 }
 
 void LaneDetector::findSteering()
 {
-		lane_middle_ = detectLaneCenter();
+	lane_middle_ = detectLaneCenter();
 
-		angle_ = calculateAngle();
+	angle_ = calculateAngle();
 }
 
 void LaneDetector::calDetectingTime(const int64 start_time, const int64 finish_time)
 {
-		calculateOnceDetectTime(start_time, finish_time);
+	calculateOnceDetectTime(start_time, finish_time);
 
-		calculateAvgDetectTime();
+	calculateAvgDetectTime();
 }
 
 void LaneDetector::visualizeAll()
 {
-		visualizeLine();
-		showImg();
+	visualizeLine();
+	showImg();
 }
 
 int LaneDetector::laneDetecting(const cv::Mat& raw_img)
 {
-		const int64 start_time = getTickCount();
-		frame_count_++;
+	const int64 start_time = getTickCount();
+	frame_count_++;
 
-		preprocessImg(raw_img);
+	preprocessImg(raw_img);
 
-		findLanePoints();
+	findLanePoints();
 
-		findSteering();
+	findSteering();
 
-		const int64 finish_time = getTickCount();
-		
-		calDetectingTime(start_time, finish_time);
+	const int64 finish_time = getTickCount();
+	
+	calDetectingTime(start_time, finish_time);
 
-		if (detectOnlyOneLine()) {
-			reservePointReset();
-		}
+	if (detectOnlyOneLine()) {
+		reservePointReset();
+	}
 
-		visualizeAll();
+	visualizeAll();
 
 #if RC_CAR
-	// arduino steering range: 1100 < steer < 1900
-		return calculateSteerValue(1500, 1900);
+// arduino steering range: 1100 < steer < 1900
+	return calculateSteerValue(1500, 1900);
 #elif SCALE_PLATFORM
-	// platform steering range: -27 < steer < +27
-		return calculateSteerValue(0, 27);
+// platform steering range: -27 < steer < +27
+	return calculateSteerValue(0, 27);
 #endif
 }
