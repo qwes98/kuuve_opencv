@@ -6,6 +6,52 @@
 
 class LaneDetector
 {
+
+public:
+	LaneDetector(const int width, const int height, const int steer_max_angle);
+
+	void setBinaryThres(const int bin_thres);
+	void setDetectYOffset(const int detect_y_offset);
+	void setControlFactor(const double control_factor);
+
+	int getWidth() const;
+	int getHeight() const;
+	int getBinaryThres() const;
+	int getDetectYOffset() const;
+	int getSteerMaxAngle() const;
+	int getRealSteerAngle() const;
+	double getControlFactor() const;
+	double getOnceDetectTime() const;
+	double getAvgDetectTime() const;
+
+	void getRoiBinaryImg(const cv::Point& left_top, const cv::Size& roi_size);
+
+	int laneDetecting(const cv::Mat& raw_img);
+
+protected:
+	void resetLeftPoint();
+	void resetRightPoint();
+
+	void updateNextPoint();
+
+	double calculateAngle();
+	void calculateOnceDetectTime(const int64 start_time, const int64 finish_time);
+	void calculateAvgDetectTime();
+
+	bool detectOnlyOneLine() const;
+
+	void visualizeLine() const;
+	void showImg() const;
+
+	int calculateSteerValue(const int center_steer_control_value, const int max_steer_control_value);
+
+	bool haveToResetLeftPoint() const;
+	bool haveToResetRightPoint() const;
+
+	cv::Point detectLaneCenter() const;
+
+	void reservePointReset();
+
 protected:
 	// 화면 resize값
 	const int RESIZE_WIDTH_;
@@ -20,7 +66,7 @@ protected:
 	// LaneDetector
 	int binary_threshold_ = 110;
 	const int STEER_MAX_ANGLE_;
-  double control_factor_ = 1.0;
+  	double control_factor_ = 1.0;
 
 	// LaneDetector below all
 	cv::Mat resized_img_;		// resized image by (width, height)
@@ -41,52 +87,7 @@ protected:
 	double once_detect_time_ = 0;
 	double detect_avg_time_ = 0;
 
-  LinePointDetector line_point_detector_;
-
-protected:
-void resetLeftPoint();
-void resetRightPoint();
-
-void updateNextPoint();
-
-double calculateAngle();
-void calculateOnceDetectTime(const int64 start_time, const int64 finish_time);
-void calculateAvgDetectTime();
-
-bool detectOnlyOneLine() const;
-
-void visualizeLine() const;
-void showImg() const;
-
-int calculateSteerValue(const int center_steer_control_value, const int max_steer_control_value);
-
-bool haveToResetLeftPoint() const;
-bool haveToResetRightPoint() const;
-
-cv::Point detectLaneCenter() const;
-
-void reservePointReset();
-
-public:
-LaneDetector(const int width, const int height, const int steer_max_angle);
-
-void setBinaryThres(const int bin_thres);
-void setDetectYOffset(const int detect_y_offset);
-void setControlFactor(const double control_factor);
-
-int getWidth() const;
-int getHeight() const;
-int getBinaryThres() const;
-int getDetectYOffset() const;
-int getSteerMaxAngle() const;
-int getRealSteerAngle() const;
-double getControlFactor() const;
-double getOnceDetectTime() const;
-double getAvgDetectTime() const;
-
-void getRoiBinaryImg(const cv::Point& left_top, const cv::Size& roi_size);
-
-int laneDetecting(const cv::Mat& raw_img);
+  	LinePointDetector line_point_detector_;
 };
 
 #endif
