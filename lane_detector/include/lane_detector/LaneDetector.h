@@ -52,6 +52,14 @@ protected:
 
 	void reservePointReset();
 
+	// wrapper function for lane detection
+	// these functions are called on `laneDetecting` function
+	void preprocessImg(const cv::Mat& raw_img);
+	void findLanePoints();
+	void findSteering();
+	void calDetectingTime(const int64 start_time, const int64 finish_time);
+	void visualizeAll();
+
 protected:
 	// 화면 resize값
 	const int RESIZE_WIDTH_;

@@ -126,18 +126,15 @@ void LaneDetector::reservePointReset()
 	line_point_detector_.setRightResetFlag(true);
 }
 
-int LaneDetector::laneDetecting(const cv::Mat& raw_img)
+void LaneDetector::preprocessImg(const cv::Mat& raw_img)
 {
-		const int64 start_time = getTickCount();
-
-		frame_count_++;
-
-    // 1. preprocessing
 		resize(raw_img, resized_img_, Size(RESIZE_WIDTH_, RESIZE_HEIGHT_));
 
 		getRoiBinaryImg(Point(0, RESIZE_HEIGHT_ / 2), Size(RESIZE_WIDTH_, RESIZE_HEIGHT_ / 2));
+}
 
-    // 2. find lane point
+void LaneDetector::findLanePoints()
+{
 		if(haveToResetLeftPoint()) {
 			resetLeftPoint();
 		}
@@ -147,25 +144,48 @@ int LaneDetector::laneDetecting(const cv::Mat& raw_img)
 		}
 
 		updateNextPoint();
+}
 
-    // 3. calculate steering
+void LaneDetector::findSteering()
+{
 		lane_middle_ = detectLaneCenter();
 
 		angle_ = calculateAngle();
+}
 
-		const int64 finish_time = getTickCount();
-
-    // 4. check algorithm time
+void LaneDetector::calDetectingTime(const int64 start_time, const int64 finish_time)
+{
 		calculateOnceDetectTime(start_time, finish_time);
 
 		calculateAvgDetectTime();
+}
+
+void LaneDetector::visualizeAll()
+{
+		visualizeLine();
+		showImg();
+}
+
+int LaneDetector::laneDetecting(const cv::Mat& raw_img)
+{
+		const int64 start_time = getTickCount();
+		frame_count_++;
+
+		preprocessImg(raw_img);
+
+		findLanePoints();
+
+		findSteering();
+
+		const int64 finish_time = getTickCount();
+		
+		calDetectingTime(start_time, finish_time);
 
 		if (detectOnlyOneLine()) {
 			reservePointReset();
 		}
 
-		visualizeLine();
-		showImg();
+		visualizeAll();
 
 #if RC_CAR
 	// arduino steering range: 1100 < steer < 1900
