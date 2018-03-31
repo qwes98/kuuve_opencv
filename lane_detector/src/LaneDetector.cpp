@@ -1,17 +1,12 @@
 #include "lane_detector/LaneDetector.h"
 #include "lane_detector/LinePointDetector.h"
-#include "lane_detector/ConditionalCompile.h"
 
 using namespace std;
 using namespace cv;
 
 LaneDetector::LaneDetector(const int width, const int height, const int steer_max_angle)
-  : RESIZE_WIDTH_(width), RESIZE_HEIGHT_(height), STEER_MAX_ANGLE_(steer_max_angle)
-{
-	// LaneDetector
-	last_right_point_.x = 0;
-	last_left_point_.x = 0;
-}
+  : RESIZE_WIDTH_(width), RESIZE_HEIGHT_(height), STEER_MAX_ANGLE_(steer_max_angle), last_right_point_(0, 0), last_left_point_(0, 0)
+{}
 
 void LaneDetector::setBinaryThres(const int bin_thres) { binary_threshold_ = bin_thres; }
 void LaneDetector::setDetectYOffset(const int detect_y_offset) { detect_y_offset_ = detect_y_offset; }
@@ -178,7 +173,7 @@ int LaneDetector::laneDetecting(const cv::Mat& raw_img)
 	findSteering();
 
 	const int64 finish_time = getTickCount();
-	
+
 	calDetectingTime(start_time, finish_time);
 
 	if (detectOnlyOneLine()) {

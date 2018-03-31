@@ -1,0 +1,25 @@
+<launch>
+	<node pkg="crosswalk_stop" type="crosswalk_stop" name="crosswalk_stop">
+		<param name="resize_width" value="480" />
+		<param name="resize_height" value="270" />
+		<param name="bin_thres" value="215" />	
+		<param name="detect_y_offset" value="30" />
+
+		<!-- rc car -->
+		<!--param name="steer_max_angle" value="45" /-->
+		<!--param name="throttle" value="1515" /-->
+		<!--remap from="/crosswalk_stop/write" to="write" /-->
+
+		<!-- scale platform -->
+		<param name="steer_max_angle" value="27" />
+		<param name="throttle" value="2" />
+		<remap from="/crosswalk_stop/ackermann" to="ackermann" />
+
+		<!-- control_value *= control_factor / 100 -->
+		<param name="control_factor" value="100" />
+
+		<!-- (stop_distance = 0) == center of frame, top of binary -->
+		<!-- (stop_distance = 100) == bottom of frame, binary -->
+		<param name="stop_distance" value="75" />
+	</node>
+</launch>

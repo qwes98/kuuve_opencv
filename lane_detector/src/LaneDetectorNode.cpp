@@ -1,16 +1,7 @@
-#include <ros/ros.h>
-#include <std_msgs/String.h>
-#include <cv_bridge/cv_bridge.h>
-#include <image_transport/image_transport.h>
-#include <sensor_msgs/image_encodings.h>
-#include <ackermann_msgs/AckermannDriveStamped.h>
-#include <signal.h>
 #include <cmath>
 #include <string>
-#include <memory>
-#include "lane_detector/LaneDetector.h"
+#include <stdexcept>
 #include "lane_detector/LaneDetectorNode.h"
-#include "lane_detector/ConditionalCompile.h"
 
 using namespace std;
 using namespace cv;
@@ -18,7 +9,7 @@ using namespace cv;
 LaneDetectorNode::LaneDetectorNode()
 {
 	nh_ = ros::NodeHandle("~");
-	// if NodeHangle("~"), then (write -> /lane_detector/write)
+	/* if NodeHangle("~"), then (write -> /lane_detector/write)	*/
 #if RC_CAR
 	control_pub_ = nh_.advertise<std_msgs::String>("write", 100);
 #elif	SCALE_PLATFORM
@@ -44,38 +35,42 @@ LaneDetectorNode::LaneDetectorNode()
 
 void LaneDetectorNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 {
-		cv_bridge::CvImagePtr cv_ptr;
-		try {
-			cv_ptr = cv_bridge::toCvCopy(image, sensor_msgs::image_encodings::BGR8);
-		} catch(cv_bridge::Exception& e) {
-			ROS_ERROR("cv_bridge exception: %s", e.what());
-			return ;
-		}
+	Mat raw_img;
+	try{
+		raw_img = parseRawimg(image);
+	} catch(const cv_bridge::Exception& e) {
+		ROS_ERROR("cv_bridge exception: %s", e.what());
+		return ;
+	} catch(const std::runtime_error& e) {
+		cerr << e.what() << endl;
+	}
 
-		Mat raw_img = cv_ptr->image;
+    getRosParamForUpdate();
 
-		if (raw_img.empty())
-		{
-			cout << "frame is empty!" << endl;
-			return;
-		}
+    int steer_control_value = lanedetector_ptr_->laneDetecting(raw_img);
 
-		getRosParamForUpdate();
-
-		// TODO: have to modify
-		int steer_control_value = lanedetector_ptr_->laneDetecting(raw_img);
-
-#if RC_CAR
-		std_msgs::String control_msg = makeControlMsg(steer_control_value);
-		printData(control_msg);
+#if	RC_CAR
+	std_msgs::String control_msg = makeControlMsg(steer_control_value);
+	printData(control_msg);
 #elif	SCALE_PLATFORM
-		ackermann_msgs::AckermannDriveStamped control_msg;
-		//control_msg.drive.steering_angle = steer_control_value;
-		control_msg.drive.steering_angle = lanedetector_ptr_->getRealSteerAngle();
-		control_msg.drive.speed = throttle_;
-		printData();
+	ackermann_msgs::AckermannDriveStamped control_msg = makeControlMsg();
+	printData();
 #endif
-		control_pub_.publish(control_msg);
+
+	control_pub_.publish(control_msg);
+}
+
+Mat LaneDetectorNode::parseRawimg(const sensor_msgs::ImageConstPtr& image)
+{
+	cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(image, sensor_msgs::image_encodings::BGR8);
+
+	Mat raw_img = cv_ptr->image;
+
+	if (raw_img.empty()) {
+		throw std::runtime_error("frame is empty!");
+	}
+
+	return raw_img;
 }
 
 void LaneDetectorNode::getRosParamForConstValue(int& width, int& height, int& steer_max_angle)
@@ -98,12 +93,19 @@ void LaneDetectorNode::getRosParamForUpdate()
 	lanedetector_ptr_->setControlFactor((double)paramArr[2] / 100);
 }
 
+#if RC_CAR
+std_msgs::String LaneDetectorNode::makeControlMsg(int steer)
+{
+	std_msgs::String control_msg;
+	control_msg.data = string(to_string(steer)) + "," + string(to_string(throttle_)) + ","; // Make message
+	return control_msg;
+}
+
 void LaneDetectorNode::printData(std_msgs::String control_msg)
 {
-  cout << "#### Algorithm Time ####" << endl;
+ 	cout << "#### Algorithm Time ####" << endl;
 	cout << "it took : " << lanedetector_ptr_->getOnceDetectTime() << "ms, " << "avg: " << lanedetector_ptr_->getAvgDetectTime() << " fps : " << 1000 / lanedetector_ptr_->getAvgDetectTime() << endl;
 	cout << "#### Control ####" << endl;
-	// TODO: modify to getOptimizedSteer() function
 	cout << "steering angle: " << lanedetector_ptr_->getRealSteerAngle() << endl;
 	cout << "control msg: " << control_msg.data << endl;
 	cout << "#### Ros Param ####" << endl;
@@ -113,12 +115,21 @@ void LaneDetectorNode::printData(std_msgs::String control_msg)
 	cout << "---------------------------------" << endl;
 }
 
+#elif SCALE_PLATFORM
+ackermann_msgs::AckermannDriveStamped LaneDetectorNode::makeControlMsg()
+{
+	ackermann_msgs::AckermannDriveStamped control_msg;
+	//control_msg.drive.steering_angle = steer_control_value;
+	control_msg.drive.steering_angle = lanedetector_ptr_->getRealSteerAngle();
+	control_msg.drive.speed = throttle_;
+	return control_msg;
+}
+
 void LaneDetectorNode::printData()
 {
-  cout << "#### Algorithm Time ####" << endl;
+ 	cout << "#### Algorithm Time ####" << endl;
 	cout << "it took : " << lanedetector_ptr_->getOnceDetectTime() << "ms, " << "avg: " << lanedetector_ptr_->getAvgDetectTime() << " fps : " << 1000 / lanedetector_ptr_->getAvgDetectTime() << endl;
 	cout << "#### Control ####" << endl;
-	// TODO: modify to getOptimizedSteer() function
 	cout << "steering angle: " << lanedetector_ptr_->getRealSteerAngle() << endl;
 	cout << "throttle: " << throttle_ << endl;
 	cout << "#### Ros Param ####" << endl;
@@ -127,10 +138,4 @@ void LaneDetectorNode::printData()
 	cout << "control_factor: " << lanedetector_ptr_->getControlFactor() * 100 << "% -> " << lanedetector_ptr_->getControlFactor() << endl;
 	cout << "---------------------------------" << endl;
 }
-
-std_msgs::String LaneDetectorNode::makeControlMsg(int steer)
-{
-	std_msgs::String control_msg;
-	control_msg.data = string(to_string(steer)) + "," + string(to_string(throttle_)) + ","; // Make message
-	return control_msg;
-}
+#endif

@@ -1,0 +1,5 @@
+<launch>
+	<include file="$(find avt_vimba_camera)/mono_camera.launch"/>
+	<include file="$(find crosswalk_stop)/launch/include/crosswalk_stop.launch"/>
+	<include file="$(find crosswalk_stop)/launch/include/serial_comm.launch"/>
+</launch>

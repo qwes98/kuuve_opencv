@@ -2,6 +2,7 @@
 #define LANEDETECTOR_H
 
 #include "opencv2/opencv.hpp"
+#include "ConditionalCompile.h"
 #include "LinePointDetector.h"
 
 class LaneDetector
@@ -63,8 +64,8 @@ protected:
 
 protected:
 	// 화면 resize값
-	const int RESIZE_WIDTH_;
-	const int RESIZE_HEIGHT_;
+	const int RESIZE_WIDTH_ = 480;
+	const int RESIZE_HEIGHT_ = 270;
 
 	// 한 직선 보는 임계값
 	const int LINE_PIXEL_THRESHOLD = 5;
@@ -73,9 +74,13 @@ protected:
 	int detect_y_offset_ = 30;
 
 	// LaneDetector
-	int binary_threshold_ = 110;
-	const int STEER_MAX_ANGLE_;
+	int binary_threshold_ = 210;
   	double control_factor_ = 1.0;
+#if RC_CAR
+	const int STEER_MAX_ANGLE_ = 45;
+#elif SCALE_PLATFORM
+	const int STEER_MAX_ANGLE_ = 27;
+#endif
 
 	// LaneDetector below all
 	cv::Mat resized_img_;		// resized image by (width, height)

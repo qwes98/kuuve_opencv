@@ -1,5 +1,5 @@
-#ifndef LANEDETECTORNODE_H
-#define LANEDETECTORNODE_H
+#ifndef CROSSWALKSTOPNODE_H
+#define CROSSWALKSTOPNODE_H
 
 #include <ros/ros.h>
 #include <std_msgs/String.h>
@@ -9,18 +9,18 @@
 #include <ackermann_msgs/AckermannDriveStamped.h>
 #include <signal.h>
 #include <memory>
-#include "lane_detector/LaneDetector.h"
+#include "crosswalk_stop/CrosswalkStop.h"
 #include "lane_detector/ConditionalCompile.h"
 
-class LaneDetectorNode
+class CrosswalkStopNode
 {
 public:
-	LaneDetectorNode();
+    CrosswalkStopNode();
 
 	void imageCallback(const sensor_msgs::ImageConstPtr& image);
 
 private:
-	void getRosParamForConstValue(int& width, int& height, int& steer_max_angle);
+	void getRosParamForConstValue(int& width, int& height, int& steer_max_angle, int& stop_distance);
 	void getRosParamForUpdate();
 
 	cv::Mat parseRawimg(const sensor_msgs::ImageConstPtr& image);
@@ -40,7 +40,10 @@ private:
 
 	int throttle_ = 0;
 
-	std::unique_ptr<LaneDetector> lanedetector_ptr_;
+    bool cross_detected = false;
+    bool mission_cleared = false;
+
+    std::unique_ptr<CrosswalkStop> crosswalkstop_ptr_;
 };
 
 #endif
