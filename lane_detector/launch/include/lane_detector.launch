@@ -15,7 +15,14 @@
 		<param name="throttle" value="2" />
 		<remap from="/crosswalk_stop/ackermann" to="ackermann" />
 
-		<!-- control_value *= control_factor / 100 -->
+		<!-- control_value(in code) *= control_factor(in .launch) / 100 -->
 		<param name="control_factor" value="100" />
+
+		<!-- full_width_rate(in code) *= full_width_rate(in .launch) / 100 -->
+		<param name="full_width_rate" value="150" />
+
+		<!-- MUST be true: img_offset < resize_width * (1 - full_width_rate / 2) -->
+		<param name="left_img_offset" value="210" />
+		<param name="right_img_offset" value="260" />
 	</node>
 </launch>

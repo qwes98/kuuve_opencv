@@ -5,6 +5,7 @@
 
 using namespace std;
 using namespace cv;
+using namespace message_filters;
 
 LaneDetectorNode::LaneDetectorNode()
 {
@@ -17,7 +18,15 @@ LaneDetectorNode::LaneDetectorNode()
 #endif
 
 #if WEBCAM
-	image_sub_ = nh_.subscribe("/usb_cam/image_raw", 100, &LaneDetectorNode::imageCallback, this);
+	// image_sub_ = nh_.subscribe("/usb_cam/image_raw", 100, &LaneDetectorNode::imageCallback, this);
+	// TODO: ros launch file use_cam topic namea modify
+	left_img_sub_ = unique_ptr<ImgSubscriber>(new ImgSubscriber(nh_, "/left_raw", 10));
+	right_img_sub_ = unique_ptr<ImgSubscriber>(new ImgSubscriber(nh_, "/right_raw", 10));
+
+	//typedef sync_policies::ExactTime<sensor_msgs::Image, sensor_msgs::Image> MySyncPolicy;
+	// ExactTime takes a queue size as its constructor argument, hence MySyncPolicy(10)
+	sub_sync_ = unique_ptr<ImgSynchronizer>(new ImgSynchronizer(MySyncPolicy(10), *left_img_sub_, *right_img_sub_));
+	sub_sync_->registerCallback(boost::bind(&LaneDetectorNode::imageCallback, this, _1, _2));
 #elif	PROSILICA_GT_CAM
 	image_sub_ = nh_.subscribe("/camera/image_raw", 100, &LaneDetectorNode::imageCallback, this);
 #endif
@@ -25,19 +34,23 @@ LaneDetectorNode::LaneDetectorNode()
 	int resize_width = 0;
 	int resize_height = 0;
 	int steer_max_angle = 0;
+	int left_img_offset = 0;
+	int right_img_offset = 0;
+	float full_width_rate = 0.0;
 
-	getRosParamForConstValue(resize_width, resize_height, steer_max_angle);
+	getRosParamForConstValue(resize_width, resize_height, steer_max_angle, left_img_offset, right_img_offset, full_width_rate);
 
-	lanedetector_ptr_ = unique_ptr<LaneDetector>(new LaneDetector(resize_width, resize_height, steer_max_angle));
+	lanedetector_ptr_ = unique_ptr<LaneDetector>(new LaneDetector(resize_width, resize_height, steer_max_angle, left_img_offset, right_img_offset, full_width_rate));
 
 	getRosParamForUpdate();
 }
 
-void LaneDetectorNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
+void LaneDetectorNode::imageCallback(const sensor_msgs::ImageConstPtr& left_img, const sensor_msgs::ImageConstPtr& right_img)
 {
-	Mat raw_img;
+	Mat raw_left_image, raw_right_image;
 	try{
-		raw_img = parseRawimg(image);
+		raw_left_image = parseRawimg(left_img);
+		raw_right_image = parseRawimg(right_img);
 	} catch(const cv_bridge::Exception& e) {
 		ROS_ERROR("cv_bridge exception: %s", e.what());
 		return ;
@@ -47,7 +60,7 @@ void LaneDetectorNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 
     getRosParamForUpdate();
 
-    int steer_control_value = lanedetector_ptr_->laneDetecting(raw_img);
+    int steer_control_value = lanedetector_ptr_->laneDetecting(raw_left_image, raw_right_image);
 
 #if	RC_CAR
 	std_msgs::String control_msg = makeControlMsg(steer_control_value);
@@ -73,11 +86,16 @@ Mat LaneDetectorNode::parseRawimg(const sensor_msgs::ImageConstPtr& image)
 	return raw_img;
 }
 
-void LaneDetectorNode::getRosParamForConstValue(int& width, int& height, int& steer_max_angle)
+void LaneDetectorNode::getRosParamForConstValue(int& width, int& height, int& steer_max_angle, int& left_img_offset, int& right_img_offset, float& full_width_rate)
 {
+	int tmp_width_rate = 0;
 	nh_.getParam("resize_width", width);
 	nh_.getParam("resize_height", height);
 	nh_.getParam("steer_max_angle", steer_max_angle);
+	nh_.getParam("left_img_offset", left_img_offset);
+	nh_.getParam("right_img_offset", right_img_offset);
+	nh_.getParam("full_width_rate", tmp_width_rate);
+	full_width_rate = (double)tmp_width_rate / 100;
 }
 
 void LaneDetectorNode::getRosParamForUpdate()

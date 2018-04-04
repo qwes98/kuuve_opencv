@@ -4,8 +4,8 @@
 using namespace std;
 using namespace cv;
 
-LaneDetector::LaneDetector(const int width, const int height, const int steer_max_angle)
-  : RESIZE_WIDTH_(width), RESIZE_HEIGHT_(height), STEER_MAX_ANGLE_(steer_max_angle), last_right_point_(0, 0), last_left_point_(0, 0)
+LaneDetector::LaneDetector(const int width, const int height, const int steer_max_angle, const int left_img_offset, const int right_img_offset, const float full_width_rate)
+  : RESIZE_WIDTH_(width), RESIZE_HEIGHT_(height), STEER_MAX_ANGLE_(steer_max_angle), LEFT_IMG_OFFSET_(left_img_offset), RIGHT_IMG_OFFSET_(right_img_offset), FULL_WIDTH_RATE_(full_width_rate), last_right_point_(0, 0), last_left_point_(0, 0)
 {}
 
 void LaneDetector::setBinaryThres(const int bin_thres) { binary_threshold_ = bin_thres; }
@@ -21,6 +21,7 @@ double LaneDetector::getControlFactor() const { return control_factor_; }
 double LaneDetector::getOnceDetectTime() const { return once_detect_time_; }
 double LaneDetector::getAvgDetectTime() const { return detect_avg_time_; }
 
+/*
 void LaneDetector::getRoiBinaryImg(const Point& left_top, const Size& roi_size)
 {
 	Mat roi_gray_img;
@@ -28,6 +29,7 @@ void LaneDetector::getRoiBinaryImg(const Point& left_top, const Size& roi_size)
 	cvtColor(roi_color_img, roi_gray_img, COLOR_BGR2GRAY);
 	threshold(roi_gray_img, roi_binary_img_, binary_threshold_, 255, THRESH_BINARY);
 }
+*/
 
 void LaneDetector::resetLeftPoint()
 {
@@ -77,14 +79,14 @@ bool LaneDetector::detectOnlyOneLine() const
 
 void LaneDetector::visualizeLine() const
 {
-	line(resized_img_, cur_right_point_ + Point(0, RESIZE_HEIGHT_ / 2), cur_left_point_ + Point(0, RESIZE_HEIGHT_ / 2), Scalar(0, 255, 0), 5);
-	line(resized_img_, lane_middle_ + Point(0, RESIZE_HEIGHT_ / 2), Point(resized_img_.cols / 2, resized_img_.rows), Scalar(0, 0, 255), 5);
+	line(full_img_, cur_right_point_ + Point(0, RESIZE_HEIGHT_ / 2), cur_left_point_ + Point(0, RESIZE_HEIGHT_ / 2), Scalar(0, 255, 0), 5);
+	line(full_img_, lane_middle_ + Point(0, RESIZE_HEIGHT_ / 2), Point(full_img_.cols / 2, full_img_.rows), Scalar(0, 0, 255), 5);
 }
 
 void LaneDetector::showImg() const
 {
 	imshow("binary img", roi_binary_img_);
-	imshow("frame", resized_img_);
+	imshow("full img", full_img_);
 	waitKey(3);
 }
 
@@ -121,11 +123,58 @@ void LaneDetector::reservePointReset()
 	line_point_detector_.setRightResetFlag(true);
 }
 
-void LaneDetector::preprocessImg(const cv::Mat& raw_img)
+void LaneDetector::getConcatBinImg()
 {
-	resize(raw_img, resized_img_, Size(RESIZE_WIDTH_, RESIZE_HEIGHT_));
+	// 일단 큰 화면 저장 
+	// 이때 full_img_ 의 세로길이는 right_img, left_img와 같고
+	// 가로길이는 left_img 와 right_img 가로길이의 합이다. 6/4(FULL_WIDTH_RATE_의 default 값) 가 full_img_ 이므로 다른애들은 3/4 이다.
+	full_img_ = Mat(resized_left_img_.rows, resized_right_img_.cols * FULL_WIDTH_RATE_, CV_8UC3, Scalar(0));
 
-	getRoiBinaryImg(Point(0, RESIZE_HEIGHT_ / 2), Size(RESIZE_WIDTH_, RESIZE_HEIGHT_ / 2));
+	//sub_left_img -> full_img_를 반으로 자른 뒤 왼쪽 이미지만 참조하는 변수.. 이 변수에 무언가를 넣으면 full_img_의 왼쪽만 변한다.
+	Mat sub_left_img(full_img_, Rect(0, 0, full_img_.cols / 2, full_img_.rows));
+    Mat sub_right_img(full_img_, Rect(full_img_.cols / 2, 0, full_img_.cols / 2, full_img_.rows));
+
+	Mat left_frame_cut;
+	Mat right_frame_cut;
+
+	// TODO: resize_left_img_.cols -> RESIZE_WIDTH_ & .rows -> RESIZE_HEIGHT_
+	try {
+		left_frame_cut = resized_left_img_(Rect(resized_left_img_.cols * (1 - FULL_WIDTH_RATE_ / 2) - LEFT_IMG_OFFSET_, 0, resized_left_img_.cols * FULL_WIDTH_RATE_ / 2, resized_left_img_.rows));
+	} catch(const cv::Exception& e) {
+		cerr << "Awesome 2018 Kuuve vision team member: 강희, 지원, 주한, 인재, 정호, 상원, 정민" << endl;
+		cerr << "left image offset must be less than " << resized_left_img_.cols * (1 - FULL_WIDTH_RATE_ / 2) << " !!!!" << endl;
+		cerr << "left image offset: " << LEFT_IMG_OFFSET_ << endl;
+		cerr << "if you want to increase offset more, you have to decrease full image width" << endl;
+	}
+
+	try {
+		right_frame_cut = resized_right_img_(Rect(RIGHT_IMG_OFFSET_, 0, resized_right_img_.cols * FULL_WIDTH_RATE_ / 2, resized_right_img_.rows));
+	} catch(const cv::Exception& e) {
+		cerr << "2018 Kuuve vision team member: 강희, 지원, 주한, 인재, 정호, 상원, 정민" << endl;
+		cerr << "right image offset must be less than " << resized_right_img_.cols * (1 - FULL_WIDTH_RATE_ / 2) << " !!!!" << endl;
+		cerr << "right image offset: " << RIGHT_IMG_OFFSET_ << endl;
+		cerr << "if you want to increase offset more, you have to decrease full image width" << endl;
+	}
+
+	// 위에서 관심영역만 자른 이미지를 전체 이미지의 왼쪽을 참조하는 영상에 붙여 넣는다  
+	left_frame_cut.copyTo(sub_left_img);
+	right_frame_cut.copyTo(sub_right_img);
+
+	//이제부터는 그냥 차선 인식 ( 화면의 아래쪽을 관심영역을 두고 원래 하던대로 차선 인식
+	Mat full_gray;
+	Mat full_Roi = full_img_(Rect(0, full_img_.rows / 2, full_img_.cols, full_img_.rows / 2));
+	cvtColor(full_Roi, full_gray, COLOR_BGR2GRAY);
+
+	double b = threshold(full_gray, roi_binary_img_, binary_threshold_, 255, THRESH_BINARY);
+}
+
+void LaneDetector::preprocessImg(const cv::Mat& raw_left_img, const cv::Mat& raw_right_img)
+{
+	resize(raw_left_img, resized_left_img_, Size(RESIZE_WIDTH_, RESIZE_HEIGHT_));
+	resize(raw_right_img, resized_right_img_, Size(RESIZE_WIDTH_, RESIZE_HEIGHT_));
+
+	// getRoiBinaryImg(Point(0, RESIZE_HEIGHT_ / 2), Size(RESIZE_WIDTH_, RESIZE_HEIGHT_ / 2));
+	getConcatBinImg();
 }
 
 void LaneDetector::findLanePoints()
@@ -161,12 +210,12 @@ void LaneDetector::visualizeAll()
 	showImg();
 }
 
-int LaneDetector::laneDetecting(const cv::Mat& raw_img)
+int LaneDetector::laneDetecting(const cv::Mat& raw_left_img, const cv::Mat& raw_right_img)
 {
 	const int64 start_time = getTickCount();
 	frame_count_++;
 
-	preprocessImg(raw_img);
+	preprocessImg(raw_left_img, raw_right_img);
 
 	findLanePoints();
 

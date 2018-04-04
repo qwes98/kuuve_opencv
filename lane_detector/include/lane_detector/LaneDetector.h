@@ -9,7 +9,7 @@ class LaneDetector
 {
 
 public:
-	LaneDetector(const int width, const int height, const int steer_max_angle);
+	LaneDetector(const int width, const int height, const int steer_max_angle, const int left_img_offset, const int right_img_offset, const float full_width_rate);
 
 	void setBinaryThres(const int bin_thres);
 	void setDetectYOffset(const int detect_y_offset);
@@ -25,10 +25,10 @@ public:
 	double getOnceDetectTime() const;
 	double getAvgDetectTime() const;
 
-	void getRoiBinaryImg(const cv::Point& left_top, const cv::Size& roi_size);
+	// void getRoiBinaryImg(const cv::Point& left_top, const cv::Size& roi_size);
 
 	// main wrapper function
-	int laneDetecting(const cv::Mat& raw_img);
+	int laneDetecting(const cv::Mat& raw_left_img, const cv::Mat& raw_right_img);
 
 protected:
 	void resetLeftPoint();
@@ -54,9 +54,11 @@ protected:
 
 	void reservePointReset();
 
+	void getConcatBinImg();
+
 	// wrapper function for lane detection
 	// these functions are called on `laneDetecting` function
-	void preprocessImg(const cv::Mat& raw_img);
+	void preprocessImg(const cv::Mat& raw_left_img, const cv::Mat& raw_right_img);
 	void findLanePoints();
 	void findSteering();
 	void calDetectingTime(const int64 start_time, const int64 finish_time);
@@ -82,8 +84,20 @@ protected:
 	const int STEER_MAX_ANGLE_ = 27;
 #endif
 
+	// TODO: add on ros launch new three const value
+	// 왼쪽,오른쪽 카메라에서 들어온 영상을 관심 영역만 자른다.
+	// offset을 조절해서 겹치는 부분을 잘라낸다.
+	const int LEFT_IMG_OFFSET_ = 210;
+	const int RIGHT_IMG_OFFSET_ = 260;
+
+	// RESIZE_WIDTH_와 비교했을때 full image의 width값 비율
+	const float FULL_WIDTH_RATE_ = 6/4;
+
 	// LaneDetector below all
-	cv::Mat resized_img_;		// resized image by (width, height)
+	cv::Mat full_img_;
+	cv::Mat resized_left_img_;		// resized image by (width, height)
+	cv::Mat resized_right_img_;
+
 	cv::Mat roi_binary_img_;
 
 	cv::Point last_right_point_;
