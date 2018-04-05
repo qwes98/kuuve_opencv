@@ -6,7 +6,7 @@
 		<param name="pixel_format" value="yuyv" />
 		<param name="camera_frame_id" value="usb_cam_1" />
 		<param name="io_method" value="mmap"/>
-		<param name="framerate" value="40"/>
+		<param name="framerate" value="30"/>
 		<remap from="/left_usb_cam/image_raw" to="left_raw" />
 	</node>
 
@@ -17,7 +17,7 @@
 		<param name="pixel_format" value="yuyv" />
 		<param name="camera_frame_id" value="usb_cam_2" />
 		<param name="io_method" value="mmap"/>
-		<param name="framerate" value="40"/>
+		<param name="framerate" value="30"/>
 		<remap from="/right_usb_cam/image_raw" to="right_raw" />
 	</node>
 </launch>
