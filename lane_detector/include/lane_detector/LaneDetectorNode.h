@@ -9,13 +9,13 @@
 #include <ackermann_msgs/AckermannDriveStamped.h>
 #include <message_filters/subscriber.h>
 #include <message_filters/synchronizer.h>
-#include <message_filters/sync_policies/exact_time.h>
+#include <message_filters/sync_policies/approximate_time.h>
 #include <signal.h>
 #include <memory>
 #include "lane_detector/LaneDetector.h"
 #include "lane_detector/ConditionalCompile.h"
 
-typedef message_filters::sync_policies::ExactTime<sensor_msgs::Image, sensor_msgs::Image> MySyncPolicy;
+typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> MySyncPolicy;
 typedef message_filters::Synchronizer<MySyncPolicy> ImgSynchronizer;
 typedef message_filters::Subscriber<sensor_msgs::Image> ImgSubscriber;
 

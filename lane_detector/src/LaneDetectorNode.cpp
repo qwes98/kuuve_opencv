@@ -23,8 +23,7 @@ LaneDetectorNode::LaneDetectorNode()
 	left_img_sub_ = unique_ptr<ImgSubscriber>(new ImgSubscriber(nh_, "/left_raw", 10));
 	right_img_sub_ = unique_ptr<ImgSubscriber>(new ImgSubscriber(nh_, "/right_raw", 10));
 
-	//typedef sync_policies::ExactTime<sensor_msgs::Image, sensor_msgs::Image> MySyncPolicy;
-	// ExactTime takes a queue size as its constructor argument, hence MySyncPolicy(10)
+	// ApproximateTime takes a queue size as its constructor argument, hence MySyncPolicy(10)
 	sub_sync_ = unique_ptr<ImgSynchronizer>(new ImgSynchronizer(MySyncPolicy(10), *left_img_sub_, *right_img_sub_));
 	sub_sync_->registerCallback(boost::bind(&LaneDetectorNode::imageCallback, this, _1, _2));
 #elif	PROSILICA_GT_CAM

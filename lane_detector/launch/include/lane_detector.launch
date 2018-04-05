@@ -22,7 +22,7 @@
 		<param name="full_width_rate" value="150" />
 
 		<!-- MUST be true: img_offset < resize_width * (1 - full_width_rate / 2) -->
-		<param name="left_img_offset" value="210" />
-		<param name="right_img_offset" value="260" />
+		<param name="left_img_offset" value="110" />
+		<param name="right_img_offset" value="110" />
 	</node>
 </launch>
