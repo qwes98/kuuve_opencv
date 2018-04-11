@@ -16,6 +16,11 @@ CrosswalkStopNode::CrosswalkStopNode()
 	control_pub_ = nh_.advertise<ackermann_msgs::AckermannDriveStamped>("ackermann", 100);
 #endif
 
+#if DEBUG
+	true_color_pub_ = nh_.advertise<sensor_msgs::Image>("truecolor", 10);
+	binary_pub_ = nh_.advertise<sensor_msgs::Image>("binary", 10);
+#endif
+
 #if WEBCAM
 	image_sub_ = nh_.subscribe("/usb_cam/image_raw", 100, &CrosswalkStopNode::imageCallback, this);
 #elif	PROSILICA_GT_CAM
@@ -66,11 +71,31 @@ void CrosswalkStopNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 #endif
 	control_pub_.publish(control_msg);
 
+#if DEBUG
+	true_color_pub_.publish(getDetectColorImg());
+	binary_pub_.publish(getDetectBinaryImg());
+#endif
+
 	if(cross_detected && !mission_cleared) {
 		ros::Duration(3).sleep();	// sleep for 3 seconds
 		mission_cleared = true;
 	}
 }
+
+#if DEBUG
+sensor_msgs::ImagePtr CrosswalkStopNode::getDetectColorImg()
+{
+	const Mat& image = crosswalkstop_ptr_->getRoiColorImg();
+	return cv_bridge::CvImage(std_msgs::Header(), "bgr8", image).toImageMsg();
+}
+
+sensor_msgs::ImagePtr CrosswalkStopNode::getDetectBinaryImg()
+{
+	const Mat& image = crosswalkstop_ptr_->getRoiBinaryImg();
+	return cv_bridge::CvImage(std_msgs::Header(), "mono8", image).toImageMsg();
+}
+
+#endif
 
 Mat CrosswalkStopNode::parseRawimg(const sensor_msgs::ImageConstPtr& image)
 {
