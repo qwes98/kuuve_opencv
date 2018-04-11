@@ -51,6 +51,7 @@ void CrosswalkStopNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 	int steer_control_value = crosswalkstop_ptr_->laneDetecting(raw_img);
 
     if(!cross_detected && crosswalkstop_ptr_->detectCrosswalk()) {
+		// TODO: have to modify for braking
 		throttle_ = 0;
 		cross_detected = true;
 	}
