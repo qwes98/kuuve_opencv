@@ -28,6 +28,7 @@ private:
 #if DEBUG
 	sensor_msgs::ImagePtr getDetectColorImg();
 	sensor_msgs::ImagePtr getDetectBinaryImg();
+	std_msgs::String getPrintlog();
 #endif
 
 #if RC_CAR
@@ -44,6 +45,7 @@ private:
 #if DEBUG
 	ros::Publisher true_color_pub_;
 	ros::Publisher binary_pub_;
+	ros::Publisher printlog_pub_;
 #endif
 	ros::Subscriber image_sub_;
 

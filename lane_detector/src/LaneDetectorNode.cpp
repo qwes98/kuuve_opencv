@@ -19,6 +19,7 @@ LaneDetectorNode::LaneDetectorNode()
 #if DEBUG
 	true_color_pub_ = nh_.advertise<sensor_msgs::Image>("truecolor", 10);
 	binary_pub_ = nh_.advertise<sensor_msgs::Image>("binary", 10);
+	printlog_pub_ = nh_.advertise<std_msgs::String>("printlog", 10);
 #endif
 
 #if WEBCAM
@@ -67,6 +68,7 @@ void LaneDetectorNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 #if DEBUG
 	true_color_pub_.publish(getDetectColorImg());
 	binary_pub_.publish(getDetectBinaryImg());
+	printlog_pub_.publish(getPrintlog());
 #endif
 }
 
@@ -81,6 +83,25 @@ sensor_msgs::ImagePtr LaneDetectorNode::getDetectBinaryImg()
 {
 	const Mat& image = lanedetector_ptr_->getRoiBinaryImg();
 	return cv_bridge::CvImage(std_msgs::Header(), "mono8", image).toImageMsg();
+}
+
+std_msgs::String LaneDetectorNode::getPrintlog()
+{
+	string log;
+ 	log += "#### Algorithm Time #### \n";
+	log += (string)"it took : " + to_string(lanedetector_ptr_->getOnceDetectTime()) + "ms, " + "avg: " + to_string(lanedetector_ptr_->getAvgDetectTime()) + " fps : " + to_string(1000 / lanedetector_ptr_->getAvgDetectTime()) + '\n';
+	log += "#### Control #### \n";
+	log += "steering angle: " + to_string(lanedetector_ptr_->getRealSteerAngle()) + '\n';
+	log += "throttle: " + to_string(throttle_) + '\n';
+	log += "#### Ros Param #### \n";
+	log += "bin_thres: " + to_string(lanedetector_ptr_->getBinaryThres()) + '\n';
+	log += "steer_max_angle: " + to_string(lanedetector_ptr_->getSteerMaxAngle()) + '\n';
+	log += "control_factor: " + to_string(lanedetector_ptr_->getControlFactor() * 100) + "% -> " + to_string(lanedetector_ptr_->getControlFactor()) + '\n';
+	log += "---------------------------------\n";
+
+	std_msgs::String log_msg;
+	log_msg.data = log;
+	return log_msg;
 }
 
 #endif
