@@ -5,3 +5,5 @@
 
 #define WEBCAM 1
 #define PROSILICA_GT_CAM 0
+
+#define DEBUG 1

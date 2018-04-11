@@ -16,6 +16,11 @@ LaneDetectorNode::LaneDetectorNode()
 	control_pub_ = nh_.advertise<ackermann_msgs::AckermannDriveStamped>("ackermann", 100);
 #endif
 
+#if DEBUG
+	true_color_pub_ = nh_.advertise<sensor_msgs::Image>("truecolor", 10);
+	binary_pub_ = nh_.advertise<sensor_msgs::Image>("binary", 10);
+#endif
+
 #if WEBCAM
 	image_sub_ = nh_.subscribe("/usb_cam/image_raw", 100, &LaneDetectorNode::imageCallback, this);
 #elif	PROSILICA_GT_CAM
@@ -58,7 +63,27 @@ void LaneDetectorNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 #endif
 
 	control_pub_.publish(control_msg);
+
+#if DEBUG
+	true_color_pub_.publish(getDetectColorImg());
+	binary_pub_.publish(getDetectBinaryImg());
+#endif
 }
+
+#if DEBUG
+sensor_msgs::ImagePtr LaneDetectorNode::getDetectColorImg()
+{
+	const Mat& image = lanedetector_ptr_->getRoiColorImg();
+	return cv_bridge::CvImage(std_msgs::Header(), "bgr8", image).toImageMsg();
+}
+
+sensor_msgs::ImagePtr LaneDetectorNode::getDetectBinaryImg()
+{
+	const Mat& image = lanedetector_ptr_->getRoiBinaryImg();
+	return cv_bridge::CvImage(std_msgs::Header(), "mono8", image).toImageMsg();
+}
+
+#endif
 
 Mat LaneDetectorNode::parseRawimg(const sensor_msgs::ImageConstPtr& image)
 {
