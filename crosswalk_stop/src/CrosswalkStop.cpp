@@ -25,7 +25,7 @@ bool CrosswalkStop::detectCrosswalk()
 		// crosswalk detected : red dot
 		// show circles in frame only before cross detected
         visualizeCircles();
-        // showImg();
+        showImg();
 
         /*
 		if(cross_detected) {
@@ -39,7 +39,9 @@ bool CrosswalkStop::detectCrosswalk()
 double CrosswalkStop::getStopDistance() const { return STOP_DISTANCE_; }
 
 bool CrosswalkStop::firstLocationDetected() const { return roi_binary_img_.at<uchar>(roi_binary_img_.rows * STOP_DISTANCE_, roi_binary_img_.cols * 3 / 8) >= binary_threshold_; }
+
 bool CrosswalkStop::secondLocationDetected() const { return roi_binary_img_.at<uchar>(roi_binary_img_.rows * STOP_DISTANCE_, roi_binary_img_.cols * 4 / 8) >= binary_threshold_; }
+
 bool CrosswalkStop::thirdLocationDetected() const { return roi_binary_img_.at<uchar>(roi_binary_img_.rows * STOP_DISTANCE_, roi_binary_img_.cols * 5 / 8) >= binary_threshold_; }
 
 void CrosswalkStop::visualizeCircles() const

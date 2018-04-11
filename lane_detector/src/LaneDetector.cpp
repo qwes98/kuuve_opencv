@@ -20,9 +20,11 @@ int LaneDetector::getSteerMaxAngle() const { return STEER_MAX_ANGLE_; }
 double LaneDetector::getControlFactor() const { return control_factor_; }
 double LaneDetector::getOnceDetectTime() const { return once_detect_time_; }
 double LaneDetector::getAvgDetectTime() const { return detect_avg_time_; }
+cv::Mat LaneDetector::getRoiColorImg() const { return full_img_; }
+cv::Mat LaneDetector::getRoiBinaryImg() const { return roi_binary_img_; }
 
 /*
-void LaneDetector::getRoiBinaryImg(const Point& left_top, const Size& roi_size)
+void LaneDetector::cvtToRoiBinaryImg(const Point& left_top, const Size& roi_size)
 {
 	Mat roi_gray_img;
 	Mat roi_color_img = resized_img_(Rect(left_top.x, left_top.y, roi_size.width, roi_size.height));
@@ -173,7 +175,7 @@ void LaneDetector::preprocessImg(const cv::Mat& raw_left_img, const cv::Mat& raw
 	resize(raw_left_img, resized_left_img_, Size(RESIZE_WIDTH_, RESIZE_HEIGHT_));
 	resize(raw_right_img, resized_right_img_, Size(RESIZE_WIDTH_, RESIZE_HEIGHT_));
 
-	// getRoiBinaryImg(Point(0, RESIZE_HEIGHT_ / 2), Size(RESIZE_WIDTH_, RESIZE_HEIGHT_ / 2));
+	// cvtToRoiBinaryImg(Point(0, RESIZE_HEIGHT_ / 2), Size(RESIZE_WIDTH_, RESIZE_HEIGHT_ / 2));
 	getConcatBinImg();
 }
 

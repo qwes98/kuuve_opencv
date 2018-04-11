@@ -31,6 +31,11 @@ private:
 	void getRosParamForUpdate();
 
 	cv::Mat parseRawimg(const sensor_msgs::ImageConstPtr& image);
+#if DEBUG
+	sensor_msgs::ImagePtr getDetectColorImg();
+	sensor_msgs::ImagePtr getDetectBinaryImg();
+	std_msgs::String getPrintlog();
+#endif
 
 #if RC_CAR
 	std_msgs::String makeControlMsg(int steer);
@@ -43,6 +48,12 @@ private:
 private:
 	ros::NodeHandle nh_;
 	ros::Publisher control_pub_;
+#if DEBUG
+	ros::Publisher true_color_pub_;
+	ros::Publisher binary_pub_;
+	ros::Publisher printlog_pub_;
+#endif
+
 	std::unique_ptr<ImgSubscriber> left_img_sub_;
 	std::unique_ptr<ImgSubscriber> right_img_sub_;
 	std::unique_ptr<ImgSynchronizer> sub_sync_;

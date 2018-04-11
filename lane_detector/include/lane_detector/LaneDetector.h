@@ -24,8 +24,10 @@ public:
 	double getControlFactor() const;
 	double getOnceDetectTime() const;
 	double getAvgDetectTime() const;
+	cv::Mat getRoiColorImg() const;
+	cv::Mat getRoiBinaryImg() const;
 
-	// void getRoiBinaryImg(const cv::Point& left_top, const cv::Size& roi_size);
+	// void cvtToRoiBinaryImg(const cv::Point& left_top, const cv::Size& roi_size);
 
 	// main wrapper function
 	int laneDetecting(const cv::Mat& raw_left_img, const cv::Mat& raw_right_img);

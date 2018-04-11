@@ -25,6 +25,12 @@ private:
 
 	cv::Mat parseRawimg(const sensor_msgs::ImageConstPtr& image);
 
+#if DEBUG
+	sensor_msgs::ImagePtr getDetectColorImg();
+	sensor_msgs::ImagePtr getDetectBinaryImg();
+	std_msgs::String getPrintlog();
+#endif
+
 #if RC_CAR
 	std_msgs::String makeControlMsg(int steer);
 	void printData(std_msgs::String control_msg);
@@ -36,6 +42,11 @@ private:
 private:
 	ros::NodeHandle nh_;
 	ros::Publisher control_pub_;
+#if DEBUG
+	ros::Publisher true_color_pub_;
+	ros::Publisher binary_pub_;
+	ros::Publisher printlog_pub_;
+#endif
 	ros::Subscriber image_sub_;
 
 	int throttle_ = 0;
