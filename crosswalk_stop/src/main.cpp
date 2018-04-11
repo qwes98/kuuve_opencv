@@ -9,7 +9,7 @@ int main(int argc, char** argv)
 	CrosswalkStopNode crosswalk_stop_node;
 
 #else
-	VideoCapture cap(1);
+	VideoCapture cap(0);
 	//cap.open("cameraimage_color_camera3.mp4");
 
 	if (!cap.isOpened())
@@ -17,6 +17,10 @@ int main(int argc, char** argv)
 		cout << "Not opened cap" << endl;
 		return -1;
 	}
+
+	Mat frame;
+	cap >> frame;
+	imshow("test", frame);
 #endif
 
 	ros::spin();
