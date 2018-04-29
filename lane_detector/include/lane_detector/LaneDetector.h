@@ -13,7 +13,8 @@ public:
 
 	void setBinaryThres(const int bin_thres);
 	void setDetectYOffset(const int detect_y_offset);
-	void setControlFactor(const double control_factor);
+	void setYawFactor(const double yaw_factor);
+	void setLateralFactor(const double lateral_factor);
 
 	int getWidth() const;
 	int getHeight() const;
@@ -21,13 +22,14 @@ public:
 	int getDetectYOffset() const;
 	int getSteerMaxAngle() const;
 	int getRealSteerAngle() const;
-	double getControlFactor() const;
+	double getYawFactor() const;
+	double getLateralFactor() const;
 	double getOnceDetectTime() const;
 	double getAvgDetectTime() const;
 	cv::Mat getRoiColorImg() const;
 	cv::Mat getRoiBinaryImg() const;
 
-	void cvtToRoiBinaryImg(const cv::Point& left_top, const cv::Size& roi_size);
+	virtual void cvtToRoiBinaryImg(const cv::Point& left_top, const cv::Size& roi_size);
 
 	// main wrapper function
 	int laneDetecting(const cv::Mat& raw_img);
@@ -38,14 +40,15 @@ protected:
 
 	void updateNextPoint();
 
-	double calculateAngle();
+	double calculateYawError();
+	double calculateLateralError();
 	void calculateOnceDetectTime(const int64 start_time, const int64 finish_time);
 	void calculateAvgDetectTime();
 
-	bool detectOnlyOneLine() const;
+	bool detectedOnlyOneLine() const;
 
 	void visualizeLine() const;
-	void showImg() const;
+	virtual void showImg() const;
 
 	int calculateSteerValue(const int center_steer_control_value, const int max_steer_control_value);
 
@@ -58,11 +61,11 @@ protected:
 
 	// wrapper function for lane detection
 	// these functions are called on `laneDetecting` function
-	void preprocessImg(const cv::Mat& raw_img);
-	void findLanePoints();
-	void findSteering();
+	virtual void preprocessImg(const cv::Mat& raw_img);
+	virtual void findLanePoints();
+	virtual void findSteering();
 	void calDetectingTime(const int64 start_time, const int64 finish_time);
-	void visualizeAll();
+	virtual void visualizeAll();
 
 protected:
 	// 화면 resize값
@@ -77,7 +80,8 @@ protected:
 
 	// LaneDetector
 	int binary_threshold_ = 210;
-  	double control_factor_ = 1.0;
+	double yaw_factor_ = 0.5;
+	double lateral_factor_ = 0.5;
 #if RC_CAR
 	const int STEER_MAX_ANGLE_ = 45;
 #elif SCALE_PLATFORM
@@ -96,7 +100,8 @@ protected:
 
 	cv::Point lane_middle_;
 
-	double angle_;
+	double yaw_error_;
+	double lateral_error_;
 
 	int frame_count_ = 0;	// for getting average fps
 	double sum_of_detect_time_ = 0;

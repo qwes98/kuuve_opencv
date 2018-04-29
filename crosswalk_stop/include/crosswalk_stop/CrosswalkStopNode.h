@@ -15,12 +15,12 @@
 class CrosswalkStopNode
 {
 public:
-    CrosswalkStopNode();
+  CrosswalkStopNode();
 
 	void imageCallback(const sensor_msgs::ImageConstPtr& image);
 
 private:
-	void getRosParamForConstValue(int& width, int& height, int& steer_max_angle, int& stop_distance);
+	void getRosParamForConstValue(int& width, int& height, int& steer_max_angle, int& stop_distance, int& stop_time);
 	void getRosParamForUpdate();
 
 	cv::Mat parseRawimg(const sensor_msgs::ImageConstPtr& image);
@@ -51,10 +51,10 @@ private:
 
 	int throttle_ = 0;
 
-    bool cross_detected = false;
-    bool mission_cleared = false;
+  bool cross_detected_ = false;
+  bool mission_cleared_ = false;
 
-    std::unique_ptr<CrosswalkStop> crosswalkstop_ptr_;
+  std::unique_ptr<CrosswalkStop> crosswalkstop_ptr_;
 };
 
 #endif

@@ -2,8 +2,8 @@
 	<node pkg="lane_detector" type="lane_detector" name="lane_detector">
 		<param name="resize_width" value="480" />
 		<param name="resize_height" value="270" />
-		<param name="bin_thres" value="215" />	
-		<param name="detect_y_offset" value="50" />
+		<param name="bin_thres" value="180" />	
+		<param name="detect_y_offset" value="25" />
 
 		<!-- rc car -->
 		<!--param name="steer_max_angle" value="45" /-->
@@ -12,10 +12,13 @@
 
 		<!-- scale platform -->
 		<param name="steer_max_angle" value="26" />
-		<param name="throttle" value="7" />
-		<remap from="/crosswalk_stop/ackermann" to="ackermann" />
+		<param name="throttle" value="10" />
+		<remap from="/lane_detector/ackermann" to="ackermann" />
 
-		<!-- control_value *= control_factor / 100 -->
-		<param name="control_factor" value="100" />
+		<!-- yaw_error *= yaw_factor / 100 -->
+		<param name="yaw_factor" value="40" />
+
+		<!-- lateral_error *= lateral_factor/ 100 -->
+		<param name="lateral_factor" value="80" />
 	</node>
 </launch>

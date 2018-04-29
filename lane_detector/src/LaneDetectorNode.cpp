@@ -96,7 +96,8 @@ std_msgs::String LaneDetectorNode::getPrintlog()
 	log += "#### Ros Param #### \n";
 	log += "bin_thres: " + to_string(lanedetector_ptr_->getBinaryThres()) + '\n';
 	log += "steer_max_angle: " + to_string(lanedetector_ptr_->getSteerMaxAngle()) + '\n';
-	log += "control_factor: " + to_string(lanedetector_ptr_->getControlFactor() * 100) + "% -> " + to_string(lanedetector_ptr_->getControlFactor()) + '\n';
+	log += "yaw_factor: " + to_string(lanedetector_ptr_->getYawFactor() * 100) + "% -> " + to_string(lanedetector_ptr_->getYawFactor()) + '\n';
+	log += "lateral_factor: " + to_string(lanedetector_ptr_->getLateralFactor() * 100) + "% -> " + to_string(lanedetector_ptr_->getLateralFactor()) + '\n';
 	log += "---------------------------------\n";
 
 	std_msgs::String log_msg;
@@ -128,15 +129,17 @@ void LaneDetectorNode::getRosParamForConstValue(int& width, int& height, int& st
 
 void LaneDetectorNode::getRosParamForUpdate()
 {
-	int paramArr[3];
+	int paramArr[4];
 	nh_.getParam("bin_thres", paramArr[0]);
 	nh_.getParam("detect_y_offset", paramArr[1]);
-	nh_.getParam("control_factor", paramArr[2]);
+	nh_.getParam("yaw_factor", paramArr[2]);
+	nh_.getParam("lateral_factor", paramArr[3]);
 	nh_.getParam("throttle", throttle_);
 
 	lanedetector_ptr_->setBinaryThres(paramArr[0]);
 	lanedetector_ptr_->setDetectYOffset(paramArr[1]);
-	lanedetector_ptr_->setControlFactor((double)paramArr[2] / 100);
+	lanedetector_ptr_->setYawFactor((double)paramArr[2] / 100);
+	lanedetector_ptr_->setLateralFactor((double)paramArr[3] / 100);
 }
 
 #if RC_CAR
@@ -157,7 +160,8 @@ void LaneDetectorNode::printData(std_msgs::String control_msg)
 	cout << "#### Ros Param ####" << endl;
 	cout << "bin_thres: " << lanedetector_ptr_->getBinaryThres() << endl;
 	cout << "steer_max_angle: " << lanedetector_ptr_->getSteerMaxAngle() << endl;
-	cout << "control_factor: " << lanedetector_ptr_->getControlFactor() * 100 << "% -> " << lanedetector_ptr_->getControlFactor() << endl;
+	cout << "yaw_factor: " << lanedetector_ptr_->getYawFactor() * 100 << "% -> " << lanedetector_ptr_->getYawFactor() << endl;
+	cout << "lateral_factor: " << lanedetector_ptr_->getLateralFactor() * 100 << "% -> " << lanedetector_ptr_->getLateralFactor() << endl;
 	cout << "---------------------------------" << endl;
 }
 
@@ -181,7 +185,8 @@ void LaneDetectorNode::printData()
 	cout << "#### Ros Param ####" << endl;
 	cout << "bin_thres: " << lanedetector_ptr_->getBinaryThres() << endl;
 	cout << "steer_max_angle: " << lanedetector_ptr_->getSteerMaxAngle() << endl;
-	cout << "control_factor: " << lanedetector_ptr_->getControlFactor() * 100 << "% -> " << lanedetector_ptr_->getControlFactor() << endl;
+	cout << "yaw_factor: " << lanedetector_ptr_->getYawFactor() * 100 << "% -> " << lanedetector_ptr_->getYawFactor() << endl;
+	cout << "lateral_factor: " << lanedetector_ptr_->getLateralFactor() * 100 << "% -> " << lanedetector_ptr_->getLateralFactor() << endl;
 	cout << "---------------------------------" << endl;
 }
 #endif

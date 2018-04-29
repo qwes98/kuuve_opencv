@@ -32,10 +32,11 @@ CrosswalkStopNode::CrosswalkStopNode()
 	int resize_height = 0;
 	int steer_max_angle = 0;
 	int stop_distance = 0;
+	int stop_time = 0;
 
-	getRosParamForConstValue(resize_width, resize_height, steer_max_angle, stop_distance);
+	getRosParamForConstValue(resize_width, resize_height, steer_max_angle, stop_distance, stop_time);
 
-	crosswalkstop_ptr_ = unique_ptr<CrosswalkStop>(new CrosswalkStop(resize_width, resize_height, steer_max_angle, (double)stop_distance / 100));
+	crosswalkstop_ptr_ = unique_ptr<CrosswalkStop>(new CrosswalkStop(resize_width, resize_height, steer_max_angle, (double)stop_distance / 100, stop_time));
 
 	getRosParamForUpdate();
 }
@@ -56,15 +57,15 @@ void CrosswalkStopNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 
 	int steer_control_value = crosswalkstop_ptr_->laneDetecting(raw_img);
 
-    if(!cross_detected && crosswalkstop_ptr_->detectCrosswalk()) {
+  if(!cross_detected_ && crosswalkstop_ptr_->detectCrosswalk()) {
 		// TODO: have to modify for braking
 		throttle_ = 0;
-		cross_detected = true;
+		cross_detected_ = true;
 	}
 
 
 #if	RC_CAR
-    std_msgs::String control_msg = makeControlMsg(steer_control_value);
+  std_msgs::String control_msg = makeControlMsg(steer_control_value);
 	printData(control_msg);
 #elif	SCALE_PLATFORM
 	ackermann_msgs::AckermannDriveStamped control_msg = makeControlMsg();
@@ -78,9 +79,9 @@ void CrosswalkStopNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 	printlog_pub_.publish(getPrintlog());
 #endif
 
-	if(cross_detected && !mission_cleared) {
-		ros::Duration(3).sleep();	// sleep for 3 seconds
-		mission_cleared = true;
+	if(cross_detected_ && !mission_cleared_) {
+		ros::Duration(crosswalkstop_ptr_->getStopTime()).sleep();	// sleep for 3 seconds
+		mission_cleared_ = true;
 	}
 }
 
@@ -108,7 +109,10 @@ std_msgs::String CrosswalkStopNode::getPrintlog()
 	log += "#### Ros Param #### \n";
 	log += "bin_thres: " + to_string(crosswalkstop_ptr_->getBinaryThres()) + '\n';
 	log += "steer_max_angle: " + to_string(crosswalkstop_ptr_->getSteerMaxAngle()) + '\n';
-	log += "control_factor: " + to_string(crosswalkstop_ptr_->getControlFactor() * 100) + "% -> " + to_string(crosswalkstop_ptr_->getControlFactor()) + '\n';
+	log += "yaw_factor: " + to_string(crosswalkstop_ptr_->getYawFactor() * 100) + "% -> " + to_string(crosswalkstop_ptr_->getYawFactor()) + '\n';
+	log += "lateral_factor: " + to_string(crosswalkstop_ptr_->getLateralFactor() * 100) + "% -> " + to_string(crosswalkstop_ptr_->getLateralFactor()) + '\n';
+	log += "stop_distance: " + to_string(crosswalkstop_ptr_->getStopDistance()) + '\n';
+	log += "stop_time: " + to_string(crosswalkstop_ptr_->getStopTime()) + '\n';
 	log += "---------------------------------\n";
 
 	std_msgs::String log_msg;
@@ -131,25 +135,28 @@ Mat CrosswalkStopNode::parseRawimg(const sensor_msgs::ImageConstPtr& image)
 	return raw_img;
 }
 
-void CrosswalkStopNode::getRosParamForConstValue(int& width, int& height, int& steer_max_angle, int& stop_distance)
+void CrosswalkStopNode::getRosParamForConstValue(int& width, int& height, int& steer_max_angle, int& stop_distance, int& stop_time)
 {
 	nh_.getParam("resize_width", width);
 	nh_.getParam("resize_height", height);
 	nh_.getParam("steer_max_angle", steer_max_angle);
 	nh_.getParam("stop_distance", stop_distance);
+	nh_.getParam("stop_time", stop_time);
 }
 
 void CrosswalkStopNode::getRosParamForUpdate()
 {
-	int paramArr[3];
+	int paramArr[4];
 	nh_.getParam("bin_thres", paramArr[0]);
 	nh_.getParam("detect_y_offset", paramArr[1]);
-	nh_.getParam("control_factor", paramArr[2]);
+	nh_.getParam("yaw_factor", paramArr[2]);
+	nh_.getParam("lateral_factor", paramArr[3]);
 	nh_.getParam("throttle", throttle_);
 
 	crosswalkstop_ptr_->setBinaryThres(paramArr[0]);
 	crosswalkstop_ptr_->setDetectYOffset(paramArr[1]);
-	crosswalkstop_ptr_->setControlFactor((double)paramArr[2] / 100);
+	crosswalkstop_ptr_->setYawFactor((double)paramArr[2] / 100);
+	crosswalkstop_ptr_->setLateralFactor((double)paramArr[3] / 100);
 }
 
 #if RC_CAR
@@ -170,8 +177,10 @@ void CrosswalkStopNode::printData(std_msgs::String control_msg)
 	cout << "#### Ros Param ####" << endl;
 	cout << "bin_thres: " << crosswalkstop_ptr_->getBinaryThres() << endl;
 	cout << "steer_max_angle: " << crosswalkstop_ptr_->getSteerMaxAngle() << endl;
-	cout << "control_factor: " << crosswalkstop_ptr_->getControlFactor() * 100 << "% -> " << crosswalkstop_ptr_->getControlFactor() << endl;
+	cout << "yaw_factor: " << crosswalkstop_ptr_->getYawFactor() * 100 << "% -> " << crosswalkstop_ptr_->getYawFactor() << endl;
+	cout << "lateral_factor: " << crosswalkstop_ptr_->getLateralFactor() * 100 << "% -> " << crosswalkstop_ptr_->getLateralFactor() << endl;
 	cout << "stop_distance: " << crosswalkstop_ptr_->getStopDistance() << endl;
+	cout << "stop_time: " << crosswalkstop_ptr_->getStopTime() << endl;
 	cout << "---------------------------------" << endl;
 }
 
@@ -195,8 +204,10 @@ void CrosswalkStopNode::printData()
 	cout << "#### Ros Param ####" << endl;
 	cout << "bin_thres: " << crosswalkstop_ptr_->getBinaryThres() << endl;
 	cout << "steer_max_angle: " << crosswalkstop_ptr_->getSteerMaxAngle() << endl;
-	cout << "control_factor: " << crosswalkstop_ptr_->getControlFactor() * 100 << "% -> " << crosswalkstop_ptr_->getControlFactor() << endl;
+	cout << "yaw_factor: " << crosswalkstop_ptr_->getYawFactor() * 100 << "% -> " << crosswalkstop_ptr_->getYawFactor() << endl;
+	cout << "lateral_factor: " << crosswalkstop_ptr_->getLateralFactor() * 100 << "% -> " << crosswalkstop_ptr_->getLateralFactor() << endl;
 	cout << "stop_distance: " << crosswalkstop_ptr_->getStopDistance() << endl;
+	cout << "stop_time: " << crosswalkstop_ptr_->getStopTime() << endl;
 	cout << "---------------------------------" << endl;
 }
 #endif

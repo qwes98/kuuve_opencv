@@ -51,7 +51,7 @@ private:
 	int temp = 0;
 	double angle = 0.0;
 
-	bool cross_detected = false;
+	bool cross_detected_ = false;
 
 
 	int fps = 500;
@@ -258,7 +258,7 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr& image)
 			framecount3_R = 0;
 		}
 
-		if (!cross_detected)
+		if (!cross_detected_)
 		{
 
 			if ((bi.at<uchar>(bi.rows * stop_distance, bi.cols * 3 / 8) >= cross_binary_threshold) &&
@@ -268,7 +268,7 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr& image)
 				throttle = 1500;	// Stop!
 				cout << "croswalk detected!" << endl;
 
-				cross_detected = true;
+				cross_detected_ = true;
 				sendControlMsg(1500, throttle);
 				
 			}
@@ -276,17 +276,17 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr& image)
 			// crosswalk not detected : blue dot
 			// crosswalk detected : red dot
 			// show circles in frame only before cross detected
-			circle(frame, Point(bi.cols * 3 / 8, bi.rows * stop_distance) + Point(0, length / 2), 5, Scalar(255 * (1 - cross_detected), 0, 255 * cross_detected), 5);
-			circle(frame, Point(bi.cols * 4 / 8, bi.rows * stop_distance) + Point(0, length / 2), 5, Scalar(255 * (1 - cross_detected), 0, 255 * cross_detected), 5);
-			circle(frame, Point(bi.cols * 5 / 8, bi.rows * stop_distance) + Point(0, length / 2), 5, Scalar(255 * (1 - cross_detected), 0, 255 * cross_detected), 5);
+			circle(frame, Point(bi.cols * 3 / 8, bi.rows * stop_distance) + Point(0, length / 2), 5, Scalar(255 * (1 - cross_detected_), 0, 255 * cross_detected_), 5);
+			circle(frame, Point(bi.cols * 4 / 8, bi.rows * stop_distance) + Point(0, length / 2), 5, Scalar(255 * (1 - cross_detected_), 0, 255 * cross_detected_), 5);
+			circle(frame, Point(bi.cols * 5 / 8, bi.rows * stop_distance) + Point(0, length / 2), 5, Scalar(255 * (1 - cross_detected_), 0, 255 * cross_detected_), 5);
 
-			circle(bi, Point(bi.cols * 3 / 8, bi.rows * stop_distance) , 5, Scalar(255 * (1 - cross_detected), 0, 255 * cross_detected), 5);
-			circle(bi, Point(bi.cols * 4 / 8, bi.rows * stop_distance) , 5, Scalar(255 * (1 - cross_detected), 0, 255 * cross_detected), 5);
-			circle(bi, Point(bi.cols * 5 / 8, bi.rows * stop_distance) , 5, Scalar(255 * (1 - cross_detected), 0, 255 * cross_detected), 5);
+			circle(bi, Point(bi.cols * 3 / 8, bi.rows * stop_distance) , 5, Scalar(255 * (1 - cross_detected_), 0, 255 * cross_detected_), 5);
+			circle(bi, Point(bi.cols * 4 / 8, bi.rows * stop_distance) , 5, Scalar(255 * (1 - cross_detected_), 0, 255 * cross_detected_), 5);
+			circle(bi, Point(bi.cols * 5 / 8, bi.rows * stop_distance) , 5, Scalar(255 * (1 - cross_detected_), 0, 255 * cross_detected_), 5);
 
 			imshow("frame", frame);
 
-			if(cross_detected) {
+			if(cross_detected_) {
 				waitKey(3000);	// wait for 3 sec
 			}
 					

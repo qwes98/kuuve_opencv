@@ -10,14 +10,17 @@ LaneDetector::LaneDetector(const int width, const int height, const int steer_ma
 
 void LaneDetector::setBinaryThres(const int bin_thres) { binary_threshold_ = bin_thres; }
 void LaneDetector::setDetectYOffset(const int detect_y_offset) { detect_y_offset_ = detect_y_offset; }
-void LaneDetector::setControlFactor(const double control_factor) { control_factor_ = control_factor; }
+void LaneDetector::setYawFactor(const double yaw_factor) { yaw_factor_ = yaw_factor; }
+void LaneDetector::setLateralFactor(const double lateral_factor) { lateral_factor_ = lateral_factor; }
+
 
 int LaneDetector::getWidth() const { return RESIZE_WIDTH_; }
 int LaneDetector::getHeight() const { return RESIZE_HEIGHT_; }
 int LaneDetector::getBinaryThres() const { return binary_threshold_; }
 int LaneDetector::getDetectYOffset() const { return detect_y_offset_; }
 int LaneDetector::getSteerMaxAngle() const { return STEER_MAX_ANGLE_; }
-double LaneDetector::getControlFactor() const { return control_factor_; }
+double LaneDetector::getYawFactor() const { return yaw_factor_; }
+double LaneDetector::getLateralFactor() const { return lateral_factor_; }
 double LaneDetector::getOnceDetectTime() const { return once_detect_time_; }
 double LaneDetector::getAvgDetectTime() const { return detect_avg_time_; }
 cv::Mat LaneDetector::getRoiColorImg() const { return resized_img_; }
@@ -54,11 +57,16 @@ void LaneDetector::updateNextPoint()
 	last_left_point_.x = cur_left_point_.x;
 }
 
-double LaneDetector::calculateAngle()
+double LaneDetector::calculateYawError()
 {
 	const int dx = lane_middle_.x - roi_binary_img_.cols / 2;
 	const int dy = roi_binary_img_.rows - lane_middle_.y;
 	return atan2(dx, dy) * 180 / CV_PI;
+}
+
+double LaneDetector::calculateLateralError()
+{
+	return lane_middle_.x - roi_binary_img_.cols / 2;
 }
 
 void LaneDetector::calculateOnceDetectTime(const int64 start_time, const int64 finish_time)
@@ -72,7 +80,7 @@ void LaneDetector::calculateAvgDetectTime()
 	detect_avg_time_ = sum_of_detect_time_ / frame_count_;
 }
 
-bool LaneDetector::detectOnlyOneLine() const
+bool LaneDetector::detectedOnlyOneLine() const
 {
 	return abs(cur_right_point_.x - cur_left_point_.x) < 15;
 }
@@ -95,21 +103,21 @@ int LaneDetector::calculateSteerValue(const int center_steer_control_value, cons
 	int steer_control_value = 0;	// for parsing double value to int
   const int steer_offset = max_steer_control_value - center_steer_control_value;  // center ~ max
 
-	if(angle_ * control_factor_ < STEER_MAX_ANGLE_ && angle_ * control_factor_ > (-1) * STEER_MAX_ANGLE_)
-		steer_control_value = static_cast<int>(center_steer_control_value + steer_offset / STEER_MAX_ANGLE_ * (angle_ * control_factor_));
-	else if(angle_ * control_factor_ >= STEER_MAX_ANGLE_) {
+	if(yaw_error_ * yaw_factor_ < STEER_MAX_ANGLE_ && yaw_error_ * yaw_factor_ > (-1) * STEER_MAX_ANGLE_)
+		steer_control_value = static_cast<int>(center_steer_control_value + steer_offset / STEER_MAX_ANGLE_ * (yaw_error_ * yaw_factor_) + lateral_error_ * lateral_factor_);
+	else if(yaw_error_ * yaw_factor_ >= STEER_MAX_ANGLE_) {
 		steer_control_value = center_steer_control_value + steer_offset;
-		angle_ = STEER_MAX_ANGLE_ / control_factor_;		// for print angle on console
+		yaw_error_ = STEER_MAX_ANGLE_ / yaw_factor_;		// for print angle on console
 	}
-	else if(angle_ * control_factor_ <= (-1) * STEER_MAX_ANGLE_) {
+	else if(yaw_error_ * yaw_factor_ <= (-1) * STEER_MAX_ANGLE_) {
 		steer_control_value = center_steer_control_value - steer_offset;
-		angle_ = (-1) * STEER_MAX_ANGLE_ / control_factor_;
+		yaw_error_ = (-1) * STEER_MAX_ANGLE_ / yaw_factor_;
 	}
 
 	return steer_control_value;
 }
 
-int LaneDetector::getRealSteerAngle() const { return angle_ * control_factor_; }
+int LaneDetector::getRealSteerAngle() const { return yaw_error_ * yaw_factor_; }
 
 // for testFunction
 bool LaneDetector::haveToResetLeftPoint() const { return line_point_detector_.getLeftResetFlag(); }
@@ -147,7 +155,9 @@ void LaneDetector::findSteering()
 {
 	lane_middle_ = detectLaneCenter();
 
-	angle_ = calculateAngle();
+	yaw_error_ = calculateYawError();
+
+	lateral_error_ = calculateLateralError();
 }
 
 void LaneDetector::calDetectingTime(const int64 start_time, const int64 finish_time)
@@ -178,7 +188,7 @@ int LaneDetector::laneDetecting(const cv::Mat& raw_img)
 
 	calDetectingTime(start_time, finish_time);
 
-	if (detectOnlyOneLine()) {
+	if (detectedOnlyOneLine()) {
 		reservePointReset();
 	}
 
