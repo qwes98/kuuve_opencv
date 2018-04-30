@@ -101,23 +101,24 @@ void LaneDetector::showImg() const
 int LaneDetector::calculateSteerValue(const int center_steer_control_value, const int max_steer_control_value)
 {
 	int steer_control_value = 0;	// for parsing double value to int
-  const int steer_offset = max_steer_control_value - center_steer_control_value;  // center ~ max
+	const int steer_offset = max_steer_control_value - center_steer_control_value;  // center ~ max
 
-	if(yaw_error_ * yaw_factor_ < STEER_MAX_ANGLE_ && yaw_error_ * yaw_factor_ > (-1) * STEER_MAX_ANGLE_)
-		steer_control_value = static_cast<int>(center_steer_control_value + steer_offset / STEER_MAX_ANGLE_ * (yaw_error_ * yaw_factor_) + lateral_error_ * lateral_factor_);
-	else if(yaw_error_ * yaw_factor_ >= STEER_MAX_ANGLE_) {
-		steer_control_value = center_steer_control_value + steer_offset;
-		yaw_error_ = STEER_MAX_ANGLE_ / yaw_factor_;		// for print angle on console
+	steer_angle_ = yaw_factor_ * yaw_error_ + lateral_factor_ * lateral_error_;
+
+	if(steer_angle_ < STEER_MAX_ANGLE_ && steer_angle_ > (-1) * STEER_MAX_ANGLE_) {
+		steer_control_value = static_cast<int>(center_steer_control_value + (steer_offset / STEER_MAX_ANGLE_) * steer_angle_);
 	}
-	else if(yaw_error_ * yaw_factor_ <= (-1) * STEER_MAX_ANGLE_) {
+	else if(steer_angle_ >= STEER_MAX_ANGLE_) {
+		steer_control_value = center_steer_control_value + steer_offset;
+	}
+	else if(steer_angle_ <= (-1) * STEER_MAX_ANGLE_) {
 		steer_control_value = center_steer_control_value - steer_offset;
-		yaw_error_ = (-1) * STEER_MAX_ANGLE_ / yaw_factor_;
 	}
 
 	return steer_control_value;
 }
 
-int LaneDetector::getRealSteerAngle() const { return yaw_error_ * yaw_factor_; }
+int LaneDetector::getRealSteerAngle() const { return steer_angle_; }
 
 // for testFunction
 bool LaneDetector::haveToResetLeftPoint() const { return line_point_detector_.getLeftResetFlag(); }
@@ -198,7 +199,7 @@ int LaneDetector::laneDetecting(const cv::Mat& raw_img)
 // arduino steering range: 1100 < steer < 1900
 	return calculateSteerValue(1500, 1900);
 #elif SCALE_PLATFORM
-// platform steering range: -27 < steer < +27
-	return calculateSteerValue(0, 27);
+// platform steering range: -26 < steer < +26
+	return calculateSteerValue(0, 26);
 #endif
 }

@@ -103,6 +103,8 @@ protected:
 	double yaw_error_;
 	double lateral_error_;
 
+	double steer_angle_;	// calculated real steer angle
+
 	int frame_count_ = 0;	// for getting average fps
 	double sum_of_detect_time_ = 0;
 	double once_detect_time_ = 0;
