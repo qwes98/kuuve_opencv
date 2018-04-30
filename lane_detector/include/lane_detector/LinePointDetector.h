@@ -20,6 +20,11 @@ public:
 	void setRightResetFlag(const bool right_reset_flag);
 
 	/**
+	 * 아래 함수들은 out에서 in으로 차선 인식을 하는 함수들이다
+	 *
+	 */
+
+	/**
 	 * 왼쪽 초기점 찾는 함수
 	 *
 	 * @param binary_img 차선을 찾을 roi 이진화 이미지
@@ -51,6 +56,25 @@ public:
 	 *
 	 */
 	int find_RN_x(const cv::Mat& binary_img, const int pre_point, const int detect_y_offset, const int line_pixel_threshold);
+
+
+	/**
+	 * 아래 함수들은 in에서 out으로 차선 인식을 하는 함수들이다
+	 *
+	 */
+
+	/**
+	 * @param offset 안에서 인식이 시작되는 위치로, 센터를 기준으로의 offset을 의미한다. 
+	 * 		  		 이 함수는 left line을 인식하는 함수이므로 센터로부터 오른쪽 방향으로의 offset을 의미한다.
+	 *
+	 */
+	int find_L0_x_in_to_out(const cv::Mat& binary_img, const int detect_y_offset, const int last_point, const int offset);
+
+	int find_R0_x_in_to_out(const cv::Mat& binary_img, const int detect_y_offset, const int last_point, const int offset);
+
+	int find_LN_x_in_to_out(const cv::Mat& binary_img, const int pre_point, const int detect_y_offset, const int line_pixel_threshold, const int offset);
+
+	int find_RN_x_in_to_out(const cv::Mat& binary_img, const int pre_point, const int detect_y_offset, const int line_pixel_threshold, const int offset);
 
 };
 

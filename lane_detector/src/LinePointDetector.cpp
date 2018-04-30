@@ -122,3 +122,115 @@ int LinePointDetector::find_RN_x(const Mat& binary_img, const int pre_point, con
 
 	return Right_N_x;
 }
+
+int LinePointDetector::find_L0_x_in_to_out(const Mat& binary_img, const int detect_y_offset, const int last_point, const int offset)
+{
+	int l0_x = last_point;
+
+	for (int i = binary_img.cols / 2 + offset; i > 1; i--)
+	{
+		if (binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100, i) == 255)
+		{
+			l0_x = i;
+			break;
+		}
+	}
+	left_reset_flag_ = false;
+	return l0_x;
+}
+
+int LinePointDetector::find_R0_x_in_to_out(const Mat& binary_img, const int detect_y_offset, const int last_point, const int offset)
+{
+	int r0_x = last_point;
+
+	for (int i = binary_img.cols / 2 - offset; i < binary_img.cols-1; i++)
+	{
+		if (binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100, i) == 255)
+		{
+			r0_x = i;
+			break;
+		}
+	}
+	right_reset_flag_ = false;
+	return r0_x;
+}
+
+int LinePointDetector::find_LN_x_in_to_out(const Mat& binary_img, const int pre_point, const int detect_y_offset, const int line_pixel_threshold, const int offset)
+{
+	int Left_N_x = pre_point;
+
+	for (int i = binary_img.cols / 2 + offset; i > 1; i--)
+	{
+		// 불연속 선 이라면
+		if (!(binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100, pre_point) == 255)
+			&& !(binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100 - 1, pre_point) == 255)
+			&& !(binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100 - 2, pre_point) == 255)
+			&& !(binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100 - 3, pre_point) == 255))
+		{
+			for (int i = binary_img.cols / 2 + offset; i > 1; i--)
+			{
+				if (binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100, i) == 255)
+				{
+					Left_N_x = i;
+					// cout << "왼쪽 불연속점 입니다" << Left_N_x << endl;
+					break;
+				}
+			}
+			break;
+
+		}
+		else // 연속선 이라면
+		{
+			if (binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100, i) == 255)
+			{
+
+				if ((i > pre_point + line_pixel_threshold) || (i < pre_point - line_pixel_threshold))	continue;
+
+				Left_N_x = i;
+				break;
+			}
+		}
+
+	}
+
+	return Left_N_x;
+}
+
+int LinePointDetector::find_RN_x_in_to_out(const Mat& binary_img, const int pre_point, const int detect_y_offset, const int line_pixel_threshold, const int offset)
+{
+	int Right_N_x = pre_point;
+
+	for (int i = binary_img.cols / 2 - offset; i < binary_img.cols-1; i++)
+	{
+		// 불연속 선 이라면
+		if (!(binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100, pre_point) == 255)
+			&& !(binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100 - 1, pre_point) == 255)
+			&& !(binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100 - 2, pre_point) == 255)
+			&& !(binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100 - 3, pre_point) == 255))
+		{
+			for (int i = binary_img.cols / 2 - offset; i < binary_img.cols; i++)
+			{
+				if (binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100, i) == 255)
+				{
+					Right_N_x = i;
+					// cout << "오른쪽 불연속선 입니다" << Right_N_x << endl;
+					break;
+				}
+			}
+
+			break;
+		}
+		else // 연속선 이라면
+		{
+			if (binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100, i) == 255)
+			{
+				if ((i > pre_point + line_pixel_threshold) || (i < pre_point - line_pixel_threshold))	continue;
+
+				Right_N_x = i;
+				break;
+			}
+		}
+	}
+
+	return Right_N_x;
+}
