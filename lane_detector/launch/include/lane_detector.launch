@@ -12,7 +12,7 @@
 
 		<!-- scale platform -->
 		<param name="steer_max_angle" value="26" />
-		<param name="throttle" value="10" />
+		<param name="throttle" value="16" />
 		<remap from="/lane_detector/ackermann" to="ackermann" />
 
 		<!-- yaw_error *= yaw_factor / 100 -->
