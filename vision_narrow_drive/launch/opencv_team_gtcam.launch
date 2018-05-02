@@ -1,0 +1,5 @@
+<launch>
+	<include file="$(find avt_vimba_camera)/mono_camera.launch"/>
+	<include file="$(find vision_narrow_drive/launch/include/vision_narrow_drive.launch"/>
+	<include file="$(find vision_narrow_drive)/launch/include/serial_comm.launch"/>
+</launch>

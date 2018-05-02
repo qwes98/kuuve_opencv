@@ -1,0 +1,4 @@
+<launch>
+	<include file="$(find vision_narrow_drive)/launch/include/usb_cam.launch"/>
+	<include file="$(find vision_narrow_drive)/launch/include/vision_narrow_drive.launch"/>
+</launch>
