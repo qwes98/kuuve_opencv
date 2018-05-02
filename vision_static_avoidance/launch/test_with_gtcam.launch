@@ -1,0 +1,4 @@
+<launch>
+	<include file="$(find avt_vimba_camera)/mono_camera.launch"/>
+	<include file="$(find vision_static_avoidance)/launch/include/vision_static_avoidance.launch"/>
+</launch>
