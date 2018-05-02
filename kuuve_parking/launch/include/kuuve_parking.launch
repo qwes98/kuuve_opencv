@@ -1,0 +1,4 @@
+<launch>
+	<node pkg="kuuve_parking" type="kuuve_parking" name="kuuve_parking">
+	</node>
+</launch>
