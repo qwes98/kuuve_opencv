@@ -4,8 +4,8 @@
 using namespace std;
 using namespace cv;
 
-CrosswalkStop::CrosswalkStop(const int width, const int height, const int steer_max_angle, const double stop_distance, const int stop_time)
-    : LaneDetector(width, height, steer_max_angle), STOP_DISTANCE_(stop_distance), STOP_TIME_(stop_time)
+CrosswalkStop::CrosswalkStop(const int width, const int height, const int steer_max_angle, const int detect_line_count, const double stop_distance, const int stop_time)
+    : OutToInLaneDetector(width, height, steer_max_angle, detect_line_count), STOP_DISTANCE_(stop_distance), STOP_TIME_(stop_time)
 {}
 
 bool CrosswalkStop::detectCrosswalk()
@@ -39,11 +39,11 @@ bool CrosswalkStop::detectCrosswalk()
 double CrosswalkStop::getStopDistance() const { return STOP_DISTANCE_; }
 int CrosswalkStop::getStopTime() const { return STOP_TIME_; }
 
-bool CrosswalkStop::firstLocationDetected() const { return roi_binary_img_.at<uchar>(roi_binary_img_.rows * STOP_DISTANCE_, roi_binary_img_.cols * 3 / 8) >= binary_threshold_; }
+bool CrosswalkStop::firstLocationDetected() const { return roi_binary_img_.at<uchar>(roi_binary_img_.rows * STOP_DISTANCE_, roi_binary_img_.cols * 3 / 8) >= gray_bin_thres_; }
 
-bool CrosswalkStop::secondLocationDetected() const { return roi_binary_img_.at<uchar>(roi_binary_img_.rows * STOP_DISTANCE_, roi_binary_img_.cols * 4 / 8) >= binary_threshold_; }
+bool CrosswalkStop::secondLocationDetected() const { return roi_binary_img_.at<uchar>(roi_binary_img_.rows * STOP_DISTANCE_, roi_binary_img_.cols * 4 / 8) >= gray_bin_thres_; }
 
-bool CrosswalkStop::thirdLocationDetected() const { return roi_binary_img_.at<uchar>(roi_binary_img_.rows * STOP_DISTANCE_, roi_binary_img_.cols * 5 / 8) >= binary_threshold_; }
+bool CrosswalkStop::thirdLocationDetected() const { return roi_binary_img_.at<uchar>(roi_binary_img_.rows * STOP_DISTANCE_, roi_binary_img_.cols * 5 / 8) >= gray_bin_thres_; }
 
 void CrosswalkStop::visualizeCircles() const
 {

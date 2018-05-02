@@ -20,14 +20,14 @@ public:
 	void imageCallback(const sensor_msgs::ImageConstPtr& image);
 
 private:
-	void getRosParamForConstValue(int& width, int& height, int& steer_max_angle, int& stop_distance, int& stop_time);
+	void getRosParamForConstValue(int& width, int& height, int& steer_max_angle, int& detect_line_count, int& stop_distance, int& stop_time);
 	void getRosParamForUpdate();
 
 	cv::Mat parseRawimg(const sensor_msgs::ImageConstPtr& image);
 
 #if DEBUG
 	sensor_msgs::ImagePtr getDetectColorImg();
-	sensor_msgs::ImagePtr getDetectBinaryImg();
+	sensor_msgs::ImagePtr getDetectFinalBinImg();
 	std_msgs::String getPrintlog();
 #endif
 
@@ -44,7 +44,7 @@ private:
 	ros::Publisher control_pub_;
 #if DEBUG
 	ros::Publisher true_color_pub_;
-	ros::Publisher binary_pub_;
+	ros::Publisher final_bin_pub_;
 	ros::Publisher printlog_pub_;
 #endif
 	ros::Subscriber image_sub_;

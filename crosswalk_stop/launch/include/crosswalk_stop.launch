@@ -2,9 +2,16 @@
 	<node pkg="crosswalk_stop" type="crosswalk_stop" name="crosswalk_stop">
 		<param name="resize_width" value="480" />
 		<param name="resize_height" value="270" />
-		<param name="bin_thres" value="150" />
-		<param name="detect_y_offset" value="25" />
 
+		<!-- 1. Binary threshold -->
+		<param name="bin_thres" value="150" />
+
+		<!-- 2. Detect line -->
+		<param name="detect_line_count" value="1" />
+		<param name="detect_y_offset_1" value="25" />
+		<!-- param name="detect_y_offset_2" value="" /-->
+
+		<!-- 3. Control hardware -->
 		<!-- rc car -->
 		<!--param name="steer_max_angle" value="45" /-->
 		<!--param name="throttle" value="1515" /-->
@@ -15,12 +22,14 @@
 		<param name="throttle" value="7" />
 		<remap from="/crosswalk_stop/ackermann" to="ackermann" />
 
+		<!-- 4. Control factor -->
 		<!-- yaw_value *= yaw_factor / 100 -->
 		<param name="yaw_factor" value="40" />
 
 		<!-- lateral_value *= lateral_factor / 100 -->
 		<param name="lateral_factor" value="80" />
 
+		<!-- 5. Crosswalk stop -->
 		<!-- (stop_distance = 0) == center of frame, top of binary -->
 		<!-- (stop_distance = 100) == bottom of frame, binary -->
 		<!-- stop_distance cannot be set by rosparam command -->

@@ -144,7 +144,7 @@ include_directories(
 ## The recommended prefix ensures that target names across packages don't collide
 
 # add_executable(crosswalk_stop src/main.cpp src/LineDetector.cpp)
-add_executable(crosswalk_stop src/main.cpp src/CrosswalkStop.cpp src/CrosswalkStopNode.cpp ${lane_detector_SOURCE_DIR}/src/LinePointDetector.cpp ${lane_detector_SOURCE_DIR}/src/LaneDetector.cpp)
+add_executable(crosswalk_stop src/main.cpp src/CrosswalkStop.cpp src/CrosswalkStopNode.cpp ${lane_detector_SOURCE_DIR}/src/LinePointDetector.cpp ${lane_detector_SOURCE_DIR}/src/LaneDetector.cpp ${lane_detector_SOURCE_DIR}/src/OutToInLaneDetector.cpp ${lane_detector_SOURCE_DIR}/src/MyException.cpp)
 #add_dependencies(test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(crosswalk_stop
   ${catkin_LIBRARIES}

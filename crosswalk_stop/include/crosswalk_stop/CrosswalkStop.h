@@ -1,12 +1,12 @@
 #ifndef CROSSWALKSTOP_H
 #define CROSSWALKSTOP_H
 
-#include "lane_detector/LaneDetector.h"
+#include "lane_detector/OutToInLaneDetector.h"
 
-class CrosswalkStop: public LaneDetector
+class CrosswalkStop: public OutToInLaneDetector
 {
 public:
-    CrosswalkStop(const int width, const int height, const int steer_max_angle, const double stop_distance, const int stop_time);
+    CrosswalkStop(const int width, const int height, const int steer_max_angle, const int detect_line_count, const double stop_distance, const int stop_time);
 
     bool detectCrosswalk();
 
