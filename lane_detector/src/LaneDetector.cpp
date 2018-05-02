@@ -1,23 +1,53 @@
 #include "lane_detector/LaneDetector.h"
-#include "lane_detector/LinePointDetector.h"
 
 using namespace std;
 using namespace cv;
 
-LaneDetector::LaneDetector(const int width, const int height, const int steer_max_angle)
-  : RESIZE_WIDTH_(width), RESIZE_HEIGHT_(height), STEER_MAX_ANGLE_(steer_max_angle), last_right_point_(0, 0), last_left_point_(0, 0)
-{}
+LaneDetector::LaneDetector(const int width, const int height, const int steer_max_angle, const int detect_line_count)
+  : RESIZE_WIDTH_(width), RESIZE_HEIGHT_(height), STEER_MAX_ANGLE_(steer_max_angle), DETECT_LINE_COUNT_(detect_line_count)
+{
+  detect_y_offset_arr_ = unique_ptr<int[]>(new int[DETECT_LINE_COUNT_]);
+  last_right_point_arr_ = unique_ptr<Point[]>(new Point[DETECT_LINE_COUNT_]);
+  last_left_point_arr_ = unique_ptr<Point[]>(new Point[DETECT_LINE_COUNT_]);
+  cur_right_point_arr_ = unique_ptr<Point[]>(new Point[DETECT_LINE_COUNT_]);
+  cur_left_point_arr_ = unique_ptr<Point[]>(new Point[DETECT_LINE_COUNT_]);
+  lane_middle_arr_ = unique_ptr<Point[]>(new Point[DETECT_LINE_COUNT_]);
+  line_point_detector_arr_ = unique_ptr<LinePointDetector[]>(new LinePointDetector[DETECT_LINE_COUNT_]);
 
-void LaneDetector::setBinaryThres(const int bin_thres) { binary_threshold_ = bin_thres; }
-void LaneDetector::setDetectYOffset(const int detect_y_offset) { detect_y_offset_ = detect_y_offset; }
+  for(int index = 0; index < DETECT_LINE_COUNT_; index++) {
+    last_left_point_arr_[index] = Point(0, 0);
+    last_right_point_arr_[index] = Point(0, 0);
+  }
+}
+
+void LaneDetector::setGrayBinThres(const int bin_thres) { gray_bin_thres_ = bin_thres; }
+bool LaneDetector::setDetectYOffset(const int detect_y_offset, const int index)
+  throw(my_out_of_range)
+{
+  if(index >= DETECT_LINE_COUNT_) {
+    throw_my_out_of_range(getOutOfRangeMsg(index, DETECT_LINE_COUNT_));
+  }
+
+  detect_y_offset_arr_[index] = detect_y_offset;
+  return true;
+}
 void LaneDetector::setYawFactor(const double yaw_factor) { yaw_factor_ = yaw_factor; }
 void LaneDetector::setLateralFactor(const double lateral_factor) { lateral_factor_ = lateral_factor; }
 
 
 int LaneDetector::getWidth() const { return RESIZE_WIDTH_; }
 int LaneDetector::getHeight() const { return RESIZE_HEIGHT_; }
-int LaneDetector::getBinaryThres() const { return binary_threshold_; }
-int LaneDetector::getDetectYOffset() const { return detect_y_offset_; }
+int LaneDetector::getGrayBinThres() const { return gray_bin_thres_; }
+int LaneDetector::getDetectLineCount() const { return DETECT_LINE_COUNT_; }
+int LaneDetector::getDetectYOffset(const int index) const
+  throw(my_out_of_range)
+{
+  if(index >= DETECT_LINE_COUNT_) {
+    throw_my_out_of_range(getOutOfRangeMsg(index, DETECT_LINE_COUNT_));
+  }
+
+  return detect_y_offset_arr_[index];
+}
 int LaneDetector::getSteerMaxAngle() const { return STEER_MAX_ANGLE_; }
 double LaneDetector::getYawFactor() const { return yaw_factor_; }
 double LaneDetector::getLateralFactor() const { return lateral_factor_; }
@@ -26,47 +56,27 @@ double LaneDetector::getAvgDetectTime() const { return detect_avg_time_; }
 cv::Mat LaneDetector::getRoiColorImg() const { return resized_img_; }
 cv::Mat LaneDetector::getRoiBinaryImg() const { return roi_binary_img_; }
 
-void LaneDetector::cvtToRoiBinaryImg(const Point& left_top, const Size& roi_size)
-{
-	Mat roi_gray_img;
-	Mat roi_color_img = resized_img_(Rect(left_top.x, left_top.y, roi_size.width, roi_size.height));
-	cvtColor(roi_color_img, roi_gray_img, COLOR_BGR2GRAY);
-	threshold(roi_gray_img, roi_binary_img_, binary_threshold_, 255, THRESH_BINARY);
-}
 
-void LaneDetector::resetLeftPoint()
+double LaneDetector::calculateYawError(const int index)
+  throw(my_out_of_range)
 {
-	last_left_point_.x = line_point_detector_.find_L0_x(roi_binary_img_, detect_y_offset_, last_left_point_.x);
-	last_left_point_.y = roi_binary_img_.rows * detect_y_offset_ / 100;
-}
+  if(index >= DETECT_LINE_COUNT_) {
+    throw_my_out_of_range(getOutOfRangeMsg(index, DETECT_LINE_COUNT_));
+  }
 
-void LaneDetector::resetRightPoint()
-{
-	last_right_point_.x = line_point_detector_.find_R0_x(roi_binary_img_, detect_y_offset_, last_right_point_.x);
-	last_right_point_.y = roi_binary_img_.rows * detect_y_offset_ / 100;
-}
-
-void LaneDetector::updateNextPoint()
-{
-	cur_right_point_.x = line_point_detector_.find_RN_x(roi_binary_img_, last_right_point_.x, detect_y_offset_, LINE_PIXEL_THRESHOLD);
-	cur_right_point_.y = roi_binary_img_.rows * detect_y_offset_ / 100;
-	last_right_point_.x = cur_right_point_.x;
-
-	cur_left_point_.x = line_point_detector_.find_LN_x(roi_binary_img_, last_left_point_.x, detect_y_offset_, LINE_PIXEL_THRESHOLD);
-	cur_left_point_.y = roi_binary_img_.rows * detect_y_offset_ / 100;
-	last_left_point_.x = cur_left_point_.x;
-}
-
-double LaneDetector::calculateYawError()
-{
-	const int dx = lane_middle_.x - roi_binary_img_.cols / 2;
-	const int dy = roi_binary_img_.rows - lane_middle_.y;
+	const int dx = lane_middle_arr_[index].x - roi_binary_img_.cols / 2;
+	const int dy = roi_binary_img_.rows - lane_middle_arr_[index].y;
 	return atan2(dx, dy) * 180 / CV_PI;
 }
 
-double LaneDetector::calculateLateralError()
+double LaneDetector::calculateLateralError(const int index)
+  throw(my_out_of_range)
 {
-	return lane_middle_.x - roi_binary_img_.cols / 2;
+  if(index >= DETECT_LINE_COUNT_) {
+    throw_my_out_of_range(getOutOfRangeMsg(index, DETECT_LINE_COUNT_));
+  }
+
+	return lane_middle_arr_[index].x - roi_binary_img_.cols / 2;
 }
 
 void LaneDetector::calculateOnceDetectTime(const int64 start_time, const int64 finish_time)
@@ -80,15 +90,25 @@ void LaneDetector::calculateAvgDetectTime()
 	detect_avg_time_ = sum_of_detect_time_ / frame_count_;
 }
 
-bool LaneDetector::detectedOnlyOneLine() const
+bool LaneDetector::detectedOnlyOneLine(const int index) const
+  throw(my_out_of_range)
 {
-	return abs(cur_right_point_.x - cur_left_point_.x) < 15;
+  if(index >= DETECT_LINE_COUNT_) {
+    throw_my_out_of_range(getOutOfRangeMsg(index, DETECT_LINE_COUNT_));
+  }
+
+	return abs(cur_right_point_arr_[index].x - cur_left_point_arr_[index].x) < 15;
 }
 
-void LaneDetector::visualizeLine() const
+void LaneDetector::visualizeLine(const int index) const
+  throw(my_out_of_range)
 {
-	line(resized_img_, cur_right_point_ + Point(0, RESIZE_HEIGHT_ / 2), cur_left_point_ + Point(0, RESIZE_HEIGHT_ / 2), Scalar(0, 255, 0), 5);
-	line(resized_img_, lane_middle_ + Point(0, RESIZE_HEIGHT_ / 2), Point(resized_img_.cols / 2, resized_img_.rows), Scalar(0, 0, 255), 5);
+  if(index >= DETECT_LINE_COUNT_) {
+    throw_my_out_of_range(getOutOfRangeMsg(index, DETECT_LINE_COUNT_));
+  }
+
+	line(resized_img_, cur_right_point_arr_[index] + Point(0, RESIZE_HEIGHT_ / 2), cur_left_point_arr_[index] + Point(0, RESIZE_HEIGHT_ / 2), Scalar(0, 255, 0), 5);
+	line(resized_img_, lane_middle_arr_[index] + Point(0, RESIZE_HEIGHT_ / 2), Point(resized_img_.cols / 2, resized_img_.rows), Scalar(0, 0, 255), 5);
 }
 
 void LaneDetector::showImg() const
@@ -103,6 +123,8 @@ int LaneDetector::calculateSteerValue(const int center_steer_control_value, cons
 	int steer_control_value = 0;	// for parsing double value to int
 	const int steer_offset = max_steer_control_value - center_steer_control_value;  // center ~ max
 
+//TODO: Modify steering altorithm
+/*
 	steer_angle_ = yaw_factor_ * yaw_error_ + lateral_factor_ * lateral_error_;
 
 	if(steer_angle_ < STEER_MAX_ANGLE_ && steer_angle_ > (-1) * STEER_MAX_ANGLE_) {
@@ -114,22 +136,64 @@ int LaneDetector::calculateSteerValue(const int center_steer_control_value, cons
 	else if(steer_angle_ <= (-1) * STEER_MAX_ANGLE_) {
 		steer_control_value = center_steer_control_value - steer_offset;
 	}
+  */
+
+  if(yaw_error_ * yaw_factor_ < STEER_MAX_ANGLE_ && yaw_error_ * yaw_factor_ > (-1) * STEER_MAX_ANGLE_)
+  		steer_control_value = static_cast<int>(center_steer_control_value + steer_offset / STEER_MAX_ANGLE_ * (yaw_error_ * yaw_factor_) + lateral_error_ * lateral_factor_);
+  	else if(yaw_error_ * yaw_factor_ >= STEER_MAX_ANGLE_) {
+  		steer_control_value = center_steer_control_value + steer_offset;
+  		yaw_error_ = STEER_MAX_ANGLE_ / yaw_factor_;		// for print angle on console
+  	}
+  	else if(yaw_error_ * yaw_factor_ <= (-1) * STEER_MAX_ANGLE_) {
+  		steer_control_value = center_steer_control_value - steer_offset;
+  		yaw_error_ = (-1) * STEER_MAX_ANGLE_ / yaw_factor_;
+  }
 
 	return steer_control_value;
 }
 
-int LaneDetector::getRealSteerAngle() const { return steer_angle_; }
+// int LaneDetector::getRealSteerAngle() const { return steer_angle_; }
+int LaneDetector::getRealSteerAngle() const { return yaw_error_ * yaw_factor_; }
 
 // for testFunction
-bool LaneDetector::haveToResetLeftPoint() const { return line_point_detector_.getLeftResetFlag(); }
-bool LaneDetector::haveToResetRightPoint() const { return line_point_detector_.getRightResetFlag(); }
-
-Point LaneDetector::detectLaneCenter() const { return Point((cur_right_point_.x + cur_left_point_.x) / 2, roi_binary_img_.rows * detect_y_offset_ / 100); }
-
-void LaneDetector::reservePointReset()
+bool LaneDetector::haveToResetLeftPoint(const int index) const
+  throw(my_out_of_range)
 {
-	line_point_detector_.setLeftResetFlag(true);
-	line_point_detector_.setRightResetFlag(true);
+  if(index >= DETECT_LINE_COUNT_) {
+    throw_my_out_of_range(getOutOfRangeMsg(index, DETECT_LINE_COUNT_));
+  }
+
+  return line_point_detector_arr_[index].getLeftResetFlag();
+}
+bool LaneDetector::haveToResetRightPoint(const int index) const
+  throw(my_out_of_range)
+{
+  if(index >= DETECT_LINE_COUNT_) {
+    throw_my_out_of_range(getOutOfRangeMsg(index, DETECT_LINE_COUNT_));
+  }
+
+  return line_point_detector_arr_[index].getRightResetFlag();
+}
+
+Point LaneDetector::detectLaneCenter(const int index)
+  throw(my_out_of_range)
+{
+  if(index >= DETECT_LINE_COUNT_) {
+    throw_my_out_of_range(getOutOfRangeMsg(index, DETECT_LINE_COUNT_));
+  }
+
+  return Point((cur_right_point_arr_[index].x + cur_left_point_arr_[index].x) / 2, roi_binary_img_.rows * detect_y_offset_arr_[index] / 100);
+}
+
+void LaneDetector::reservePointReset(const int index)
+  throw(my_out_of_range)
+{
+  if(index >= DETECT_LINE_COUNT_) {
+    throw_my_out_of_range(getOutOfRangeMsg(index, DETECT_LINE_COUNT_));
+  }
+
+	line_point_detector_arr_[index].setLeftResetFlag(true);
+	line_point_detector_arr_[index].setRightResetFlag(true);
 }
 
 void LaneDetector::preprocessImg(const cv::Mat& raw_img)
@@ -140,25 +204,45 @@ void LaneDetector::preprocessImg(const cv::Mat& raw_img)
 }
 
 void LaneDetector::findLanePoints()
+  throw(my_out_of_range)
 {
-	if(haveToResetLeftPoint()) {
-		resetLeftPoint();
-	}
+  for(int index = 0; index < DETECT_LINE_COUNT_; index++) {
 
-	if (haveToResetRightPoint()) {
-		resetRightPoint();
-	}
+  	if(haveToResetLeftPoint(index)) {
+  		resetLeftPoint(index);
+  	}
 
-	updateNextPoint();
+  	if (haveToResetRightPoint(index)) {
+  		resetRightPoint(index);
+  	}
+
+  	updateNextPoint(index);
+  }
+
 }
 
+/**
+ * 각 line들의 에러값을 계산 후 평균값을 사용
+ *
+ */
 void LaneDetector::findSteering()
+  throw(my_out_of_range)
 {
-	lane_middle_ = detectLaneCenter();
+  for(int index = 0; index < DETECT_LINE_COUNT_; index++) {
+  	lane_middle_arr_[index] = detectLaneCenter(index);
+  }
 
-	yaw_error_ = calculateYawError();
+  double yaw_error_sum = 0.0;
+  double lateral_error_sum = 0.0;
 
-	lateral_error_ = calculateLateralError();
+  for(int index = 0; index < DETECT_LINE_COUNT_; index++) {
+    yaw_error_sum += calculateYawError(index);
+    lateral_error_sum += calculateLateralError(index);
+  }
+
+	yaw_error_ = yaw_error_sum / DETECT_LINE_COUNT_;
+	lateral_error_ = lateral_error_sum / DETECT_LINE_COUNT_;
+
 }
 
 void LaneDetector::calDetectingTime(const int64 start_time, const int64 finish_time)
@@ -168,9 +252,20 @@ void LaneDetector::calDetectingTime(const int64 start_time, const int64 finish_t
 	calculateAvgDetectTime();
 }
 
-void LaneDetector::visualizeAll()
+void LaneDetector::checkPointReset()
+  throw(my_out_of_range)
 {
-	visualizeLine();
+  for(int index = 0; index < DETECT_LINE_COUNT_; index++)
+  	if (detectedOnlyOneLine(index))
+  		reservePointReset(index);
+}
+
+void LaneDetector::visualizeAll()
+  throw(my_out_of_range)
+{
+  for(int index = 0; index < DETECT_LINE_COUNT_; index++)
+  	visualizeLine(index);
+
 	showImg();
 }
 
@@ -189,9 +284,7 @@ int LaneDetector::laneDetecting(const cv::Mat& raw_img)
 
 	calDetectingTime(start_time, finish_time);
 
-	if (detectedOnlyOneLine()) {
-		reservePointReset();
-	}
+  checkPointReset();
 
 	visualizeAll();
 

@@ -18,7 +18,9 @@ LaneDetectorNode::LaneDetectorNode()
 
 #if DEBUG
 	true_color_pub_ = nh_.advertise<sensor_msgs::Image>("truecolor", 10);
-	binary_pub_ = nh_.advertise<sensor_msgs::Image>("binary", 10);
+	final_bin_pub_ = nh_.advertise<sensor_msgs::Image>("final_bin", 10);
+	bin_from_gray_pub_ = nh_.advertise<sensor_msgs::Image>("gray_bin", 10);
+	bin_from_hsv_s_pub_ = nh_.advertise<sensor_msgs::Image>("hsv_s_bin", 10);
 	printlog_pub_ = nh_.advertise<std_msgs::String>("printlog", 10);
 #endif
 
@@ -31,10 +33,11 @@ LaneDetectorNode::LaneDetectorNode()
 	int resize_width = 0;
 	int resize_height = 0;
 	int steer_max_angle = 0;
+	int detect_line_count = 0;
 
-	getRosParamForConstValue(resize_width, resize_height, steer_max_angle);
+	getRosParamForConstValue(resize_width, resize_height, steer_max_angle, detect_line_count);
 
-	lanedetector_ptr_ = unique_ptr<LaneDetector>(new LaneDetector(resize_width, resize_height, steer_max_angle));
+	lanedetector_ptr_ = unique_ptr<InToOutLaneDetector>(new InToOutLaneDetector(resize_width, resize_height, steer_max_angle, detect_line_count));
 
 	getRosParamForUpdate();
 }
@@ -67,7 +70,9 @@ void LaneDetectorNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 
 #if DEBUG
 	true_color_pub_.publish(getDetectColorImg());
-	binary_pub_.publish(getDetectBinaryImg());
+	final_bin_pub_.publish(getDetectFinalBinImg());
+	bin_from_gray_pub_.publish(getDetectGrayBinImg());
+	bin_from_hsv_s_pub_.publish(getDetectHsvSBinImg());
 	printlog_pub_.publish(getPrintlog());
 #endif
 }
@@ -79,9 +84,21 @@ sensor_msgs::ImagePtr LaneDetectorNode::getDetectColorImg()
 	return cv_bridge::CvImage(std_msgs::Header(), "bgr8", image).toImageMsg();
 }
 
-sensor_msgs::ImagePtr LaneDetectorNode::getDetectBinaryImg()
+sensor_msgs::ImagePtr LaneDetectorNode::getDetectFinalBinImg()
 {
 	const Mat& image = lanedetector_ptr_->getRoiBinaryImg();
+	return cv_bridge::CvImage(std_msgs::Header(), "mono8", image).toImageMsg();
+}
+
+sensor_msgs::ImagePtr LaneDetectorNode::getDetectGrayBinImg()
+{
+	const Mat& image = lanedetector_ptr_->getRoiGrayBinImg();
+	return cv_bridge::CvImage(std_msgs::Header(), "mono8", image).toImageMsg();
+}
+
+sensor_msgs::ImagePtr LaneDetectorNode::getDetectHsvSBinImg()
+{
+	const Mat& image = lanedetector_ptr_->getRoiHsvSBinImg();
 	return cv_bridge::CvImage(std_msgs::Header(), "mono8", image).toImageMsg();
 }
 
@@ -94,7 +111,13 @@ std_msgs::String LaneDetectorNode::getPrintlog()
 	log += "steering angle: " + to_string(lanedetector_ptr_->getRealSteerAngle()) + '\n';
 	log += "throttle: " + to_string(throttle_) + '\n';
 	log += "#### Ros Param #### \n";
-	log += "bin_thres: " + to_string(lanedetector_ptr_->getBinaryThres()) + '\n';
+	log += "gray_bin_thres: " + to_string(lanedetector_ptr_->getGrayBinThres()) + '\n';
+	log += "hsv_s_bin_thres: " + to_string(lanedetector_ptr_->getHsvSBinThres()) + '\n';
+	log += "detect_line_count: " + to_string(lanedetector_ptr_->getDetectLineCount()) + '\n';
+	for(int i = 0; i < lanedetector_ptr_->getDetectLineCount(); i++)
+		log += "detect_y_offset_" + to_string(i+1) + ": " + to_string(lanedetector_ptr_->getDetectYOffset(i)) + '\n';
+	log += "left_detect_offset: " + to_string(lanedetector_ptr_->getLeftDetectOffset()) + '\n';
+	log += "right_detect_offset: " + to_string(lanedetector_ptr_->getRightDetectOffset()) + '\n';
 	log += "steer_max_angle: " + to_string(lanedetector_ptr_->getSteerMaxAngle()) + '\n';
 	log += "yaw_factor: " + to_string(lanedetector_ptr_->getYawFactor() * 100) + "% -> " + to_string(lanedetector_ptr_->getYawFactor()) + '\n';
 	log += "lateral_factor: " + to_string(lanedetector_ptr_->getLateralFactor() * 100) + "% -> " + to_string(lanedetector_ptr_->getLateralFactor()) + '\n';
@@ -120,26 +143,38 @@ Mat LaneDetectorNode::parseRawimg(const sensor_msgs::ImageConstPtr& image)
 	return raw_img;
 }
 
-void LaneDetectorNode::getRosParamForConstValue(int& width, int& height, int& steer_max_angle)
+void LaneDetectorNode::getRosParamForConstValue(int& width, int& height, int& steer_max_angle, int& detect_line_count)
 {
 	nh_.getParam("resize_width", width);
 	nh_.getParam("resize_height", height);
 	nh_.getParam("steer_max_angle", steer_max_angle);
+	nh_.getParam("detect_line_count", detect_line_count);
 }
 
 void LaneDetectorNode::getRosParamForUpdate()
 {
-	int paramArr[4];
-	nh_.getParam("bin_thres", paramArr[0]);
-	nh_.getParam("detect_y_offset", paramArr[1]);
-	nh_.getParam("yaw_factor", paramArr[2]);
-	nh_.getParam("lateral_factor", paramArr[3]);
+	int paramArr[6];
+	nh_.getParam("gray_bin_thres", paramArr[0]);
+	nh_.getParam("hsv_s_bin_thres", paramArr[1]);
+	nh_.getParam("left_detect_offset", paramArr[2]);
+	nh_.getParam("right_detect_offset", paramArr[3]);
+	nh_.getParam("yaw_factor", paramArr[4]);
+	nh_.getParam("lateral_factor", paramArr[5]);
 	nh_.getParam("throttle", throttle_);
 
-	lanedetector_ptr_->setBinaryThres(paramArr[0]);
-	lanedetector_ptr_->setDetectYOffset(paramArr[1]);
-	lanedetector_ptr_->setYawFactor((double)paramArr[2] / 100);
-	lanedetector_ptr_->setLateralFactor((double)paramArr[3] / 100);
+	lanedetector_ptr_->setGrayBinThres(paramArr[0]);
+	lanedetector_ptr_->setHsvSBinThres(paramArr[1]);
+	lanedetector_ptr_->setLeftDetectOffset(paramArr[2]);
+	lanedetector_ptr_->setRightDetectOffset(paramArr[3]);
+	lanedetector_ptr_->setYawFactor((double)paramArr[4] / 100);
+	lanedetector_ptr_->setLateralFactor((double)paramArr[5] / 100);
+
+	int detect_line_count = lanedetector_ptr_->getDetectLineCount();
+	for(int i = 0; i < detect_line_count; i++) {
+		int y_offset = 0;
+		nh_.getParam("detect_y_offset_" + to_string(i+1), y_offset);
+		lanedetector_ptr_->setDetectYOffset(y_offset, i);
+	}
 }
 
 #if RC_CAR
@@ -158,7 +193,13 @@ void LaneDetectorNode::printData(std_msgs::String control_msg)
 	cout << "steering angle: " << lanedetector_ptr_->getRealSteerAngle() << endl;
 	cout << "control msg: " << control_msg.data << endl;
 	cout << "#### Ros Param ####" << endl;
-	cout << "bin_thres: " << lanedetector_ptr_->getBinaryThres() << endl;
+	cout << "gray_bin_thres: " << lanedetector_ptr_->getGrayBinThres() << endl;
+	cout << "hsv_s_bin_thres: " << lanedetector_ptr_->getHsvSBinThres() << endl;
+	cout << "detect_line_count: " << lanedetector_ptr_->getDetectLineCount() << endl;
+	for(int i = 0; i < lanedetector_ptr_->getDetectLineCount(); i++)
+		cout << "detect_y_offset_" << i+1 << ": " << lanedetector_ptr_->getDetectYOffset(i) << endl;
+	cout << "left_detect_offset: " << lanedetector_ptr_->getLeftDetectOffset() << endl;
+	cout << "right_detect_offset: " << lanedetector_ptr_->getRightDetectOffset() << endl;
 	cout << "steer_max_angle: " << lanedetector_ptr_->getSteerMaxAngle() << endl;
 	cout << "yaw_factor: " << lanedetector_ptr_->getYawFactor() * 100 << "% -> " << lanedetector_ptr_->getYawFactor() << endl;
 	cout << "lateral_factor: " << lanedetector_ptr_->getLateralFactor() * 100 << "% -> " << lanedetector_ptr_->getLateralFactor() << endl;
@@ -183,7 +224,13 @@ void LaneDetectorNode::printData()
 	cout << "steering angle: " << lanedetector_ptr_->getRealSteerAngle() << endl;
 	cout << "throttle: " << throttle_ << endl;
 	cout << "#### Ros Param ####" << endl;
-	cout << "bin_thres: " << lanedetector_ptr_->getBinaryThres() << endl;
+	cout << "gray_bin_thres: " << lanedetector_ptr_->getGrayBinThres() << endl;
+	cout << "hsv_s_bin_thres: " << lanedetector_ptr_->getHsvSBinThres() << endl;
+	cout << "detect_line_count: " << lanedetector_ptr_->getDetectLineCount() << endl;
+	for(int i = 0; i < lanedetector_ptr_->getDetectLineCount(); i++)
+		cout << "detect_y_offset_" << i+1 << ": " << lanedetector_ptr_->getDetectYOffset(i) << endl;
+	cout << "left_detect_offset: " << lanedetector_ptr_->getLeftDetectOffset() << endl;
+	cout << "right_detect_offset: " << lanedetector_ptr_->getRightDetectOffset() << endl;
 	cout << "steer_max_angle: " << lanedetector_ptr_->getSteerMaxAngle() << endl;
 	cout << "yaw_factor: " << lanedetector_ptr_->getYawFactor() * 100 << "% -> " << lanedetector_ptr_->getYawFactor() << endl;
 	cout << "lateral_factor: " << lanedetector_ptr_->getLateralFactor() * 100 << "% -> " << lanedetector_ptr_->getLateralFactor() << endl;

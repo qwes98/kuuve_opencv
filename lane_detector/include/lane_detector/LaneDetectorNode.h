@@ -9,7 +9,7 @@
 #include <ackermann_msgs/AckermannDriveStamped.h>
 #include <signal.h>
 #include <memory>
-#include "lane_detector/LaneDetector.h"
+#include "lane_detector/InToOutLaneDetector.h"
 #include "lane_detector/ConditionalCompile.h"
 
 class LaneDetectorNode
@@ -20,13 +20,16 @@ public:
 	void imageCallback(const sensor_msgs::ImageConstPtr& image);
 
 private:
-	void getRosParamForConstValue(int& width, int& height, int& steer_max_angle);
+	void getRosParamForConstValue(int& width, int& height, int& steer_max_angle, int& detect_line_count);
 	void getRosParamForUpdate();
 
 	cv::Mat parseRawimg(const sensor_msgs::ImageConstPtr& image);
 #if DEBUG
 	sensor_msgs::ImagePtr getDetectColorImg();
-	sensor_msgs::ImagePtr getDetectBinaryImg();
+	sensor_msgs::ImagePtr getDetectFinalBinImg();
+	sensor_msgs::ImagePtr getDetectGrayBinImg();
+	sensor_msgs::ImagePtr getDetectHsvSBinImg();
+
 	std_msgs::String getPrintlog();
 #endif
 
@@ -43,14 +46,17 @@ private:
 	ros::Publisher control_pub_;
 #if DEBUG
 	ros::Publisher true_color_pub_;
-	ros::Publisher binary_pub_;
+	ros::Publisher final_bin_pub_;
+	ros::Publisher bin_from_gray_pub_;
+	ros::Publisher bin_from_hsv_s_pub_;
+
 	ros::Publisher printlog_pub_;
 #endif
 	ros::Subscriber image_sub_;
 
 	int throttle_ = 0;
 
-	std::unique_ptr<LaneDetector> lanedetector_ptr_;
+	std::unique_ptr<InToOutLaneDetector> lanedetector_ptr_;
 };
 
 #endif

@@ -141,7 +141,7 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(lane_detector src/main.cpp src/LinePointDetector.cpp src/LaneDetector.cpp src/LaneDetectorNode.cpp)
+add_executable(lane_detector src/main.cpp src/LinePointDetector.cpp src/LaneDetector.cpp src/InToOutLaneDetector.cpp src/LaneDetectorNode.cpp src/MyException.cpp)
 #add_dependencies(test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(lane_detector
   ${catkin_LIBRARIES}
