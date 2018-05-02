@@ -42,13 +42,13 @@ void ackermannCallback(const ackermann_msgs::AckermannDriveStamped::ConstPtr& ms
 	else if(msg->drive.speed == 0){
 		speed_0 = 0x00;
 		speed_1 = 0x00;
-		front_break = 200;
+		front_break = 150;
 	}
 	else{
 		gear = 0x01;
 		speed_0 = 0x00;
 		speed_1 = 0x00;
-		front_break = 200;
+		front_break = 150;
 	}
 	if(steer_total > 28)
 		steer_total = 28;
