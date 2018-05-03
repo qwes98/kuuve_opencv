@@ -6,9 +6,10 @@
 class VisionPathPlanner: public InToOutLaneDetector
 {
 public:
-  VisionPathPlanner(const int width, const int height, const int steer_max_angle, const int detect_line_count);
+//TODO
+  VisionPathPlanner(const int width, const int height, const int steer_max_angle, const int detect_line_count, const int sustaining_time);
 
-  void setSustainingTime(const int sustaining_time);
+  // void setSustainingTime(const int sustaining_time);
   void setChangePixelThres(const int change_pixel_thres);
   void setTimeAfterDetectObs(const int time_after_detect_obstacle, const int index) throw(my_out_of_range);
 
@@ -26,6 +27,7 @@ protected:
   std::unique_ptr<cv::Point[]> last_lane_middle_arr_;
 
   std::unique_ptr<bool[]> start_flag_arr_;
+  std::unique_ptr<bool[]> sustaining_arr_;
 };
 
 #endif

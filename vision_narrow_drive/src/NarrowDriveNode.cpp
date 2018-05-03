@@ -34,10 +34,11 @@ NarrowDriveNode::NarrowDriveNode()
 	int resize_height = 0;
 	int steer_max_angle = 0;
 	int detect_line_count = 0;
+	int sustaining_time = 0;
 
-	getRosParamForConstValue(resize_width, resize_height, steer_max_angle, detect_line_count);
+	getRosParamForConstValue(resize_width, resize_height, steer_max_angle, detect_line_count, sustaining_time);
 
-	visionpathplanner_ptr_ = unique_ptr<VisionPathPlanner>(new VisionPathPlanner(resize_width, resize_height, steer_max_angle, detect_line_count));
+	visionpathplanner_ptr_ = unique_ptr<VisionPathPlanner>(new VisionPathPlanner(resize_width, resize_height, steer_max_angle, detect_line_count, sustaining_time));
 
 	getRosParamForUpdate();
 }
@@ -145,25 +146,25 @@ Mat NarrowDriveNode::parseRawimg(const sensor_msgs::ImageConstPtr& image)
 	return raw_img;
 }
 
-void NarrowDriveNode::getRosParamForConstValue(int& width, int& height, int& steer_max_angle, int& detect_line_count)
+void NarrowDriveNode::getRosParamForConstValue(int& width, int& height, int& steer_max_angle, int& detect_line_count, int& sustaining_time)
 {
 	nh_.getParam("resize_width", width);
 	nh_.getParam("resize_height", height);
 	nh_.getParam("steer_max_angle", steer_max_angle);
 	nh_.getParam("detect_line_count", detect_line_count);
+	nh_.getParam("sustaining_time", sustaining_time);
 }
 
 void NarrowDriveNode::getRosParamForUpdate()
 {
-	int paramArr[8];
+	int paramArr[7];
 	nh_.getParam("gray_bin_thres", paramArr[0]);
 	nh_.getParam("hsv_s_bin_thres", paramArr[1]);
 	nh_.getParam("left_detect_offset", paramArr[2]);
 	nh_.getParam("right_detect_offset", paramArr[3]);
 	nh_.getParam("yaw_factor", paramArr[4]);
 	nh_.getParam("lateral_factor", paramArr[5]);
-	nh_.getParam("sustaining_time", paramArr[6]);
-	nh_.getParam("change_pixel_thres", paramArr[7]);
+	nh_.getParam("change_pixel_thres", paramArr[6]);
 	nh_.getParam("throttle", throttle_);
 
 	visionpathplanner_ptr_->setGrayBinThres(paramArr[0]);
@@ -172,8 +173,7 @@ void NarrowDriveNode::getRosParamForUpdate()
 	visionpathplanner_ptr_->setRightDetectOffset(paramArr[3]);
 	visionpathplanner_ptr_->setYawFactor((double)paramArr[4] / 100);
 	visionpathplanner_ptr_->setLateralFactor((double)paramArr[5] / 100);
-	visionpathplanner_ptr_->setSustainingTime(paramArr[6]);
-	visionpathplanner_ptr_->setChangePixelThres(paramArr[7]);
+	visionpathplanner_ptr_->setChangePixelThres(paramArr[6]);
 
 	int detect_line_count = visionpathplanner_ptr_->getDetectLineCount();
 	for(int i = 0; i < detect_line_count; i++) {
@@ -181,7 +181,7 @@ void NarrowDriveNode::getRosParamForUpdate()
 		nh_.getParam("detect_y_offset_" + to_string(i+1), y_offset);
 		visionpathplanner_ptr_->setDetectYOffset(y_offset, i);
 
-		visionpathplanner_ptr_->setTimeAfterDetectObs(paramArr[6], i);
+		// visionpathplanner_ptr_->setTimeAfterDetectObs(paramArr[6], i);
 	}
 }
 

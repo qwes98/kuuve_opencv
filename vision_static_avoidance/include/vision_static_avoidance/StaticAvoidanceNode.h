@@ -20,7 +20,7 @@ public:
 	void imageCallback(const sensor_msgs::ImageConstPtr& image);
 
 private:
-	void getRosParamForConstValue(int& width, int& height, int& steer_max_angle, int& detect_line_count);
+	void getRosParamForConstValue(int& width, int& height, int& steer_max_angle, int& detect_line_count, int& sustaining_time);
 	void getRosParamForUpdate();
 
 	cv::Mat parseRawimg(const sensor_msgs::ImageConstPtr& image);
