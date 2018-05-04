@@ -1,4 +1,16 @@
 <launch>
 	<node pkg="kuuve_parking" type="kuuve_parking" name="kuuve_parking">
+		<param name="resize_width" value="720" />
+		<param name="resize_height" value="250" />
+
+		<param name="steer_max_angle" value="26" />
+		<param name="gray_bin_thres" value="180" />
+		<param name="hsv_s_bin_thres" value="180" />
+
+		<!-- angle factor 0 ~ 100 -->
+		<param name="angle_factor" value="80" />
+		<param name="throttle" value="7" />
+
+		<param name="go_back_stop_time" value="200" />
 	</node>
 </launch>

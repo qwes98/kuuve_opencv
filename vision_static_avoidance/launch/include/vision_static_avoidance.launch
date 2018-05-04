@@ -4,12 +4,12 @@
 		<param name="resize_height" value="270" />
 
 		<!-- 1. Binary threshold -->
-		<param name="gray_bin_thres" value="180" />
-		<param name="hsv_s_bin_thres" value="180" />
+		<param name="gray_bin_thres" value="230" />
+		<param name="hsv_s_bin_thres" value="170" />
 
 		<!-- 2. Detect line -->
 		<param name="detect_line_count" value="1" />
-		<param name="detect_y_offset_1" value="25" />
+		<param name="detect_y_offset_1" value="60" />
 		<!-- param name="detect_y_offset_2" value="" /-->
 
 		<!-- 3. Detect offset -->
@@ -24,7 +24,7 @@
 
 		<!-- scale platform -->
 		<param name="steer_max_angle" value="26" />
-		<param name="throttle" value="16" />
+		<param name="throttle" value="5" />
 		<remap from="/vision_static_avoidance/ackermann" to="ackermann" />
 
 		<!-- 5. Control factor -->
@@ -36,6 +36,6 @@
 
 		<!-- 6. Delay -->
 		<param name="sustaining_time" value="40" />
-		<param name="change_pixel_thres" value="30" />
+		<param name="change_pixel_thres" value="15" />
 	</node>
 </launch>

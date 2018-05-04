@@ -129,6 +129,10 @@ include_directories(
 	${catkin_INCLUDE_DIRS} ./include
 )
 
+include_directories(
+	${lane_detector_SOURCE_DIR}/include
+)
+
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
 #   src/${PROJECT_NAME}/opencv_test.cpp

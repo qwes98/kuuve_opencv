@@ -1,118 +1,43 @@
-#include <ros/ros.h>
-#include <opencv2/opencv.hpp>
-#include <std_msgs/String.h>
-#include <cv_bridge/cv_bridge.h>
-#include <image_transport/image_transport.h>
-#include <sensor_msgs/image_encodings.h>
-#include <ackermann_msgs/AckermannDriveStamped.h>
-#include <signal.h>
-#include "kuuve_parking/LineDetector.h"
+#include "kuuve_parking/ParkingNode.h"
 
 using namespace std;
 using namespace cv;
 
-// ---------새로 추가된 변수들
-ros::Publisher control_pub;
-ros::Subscriber image_sub;
 
-double angle_factor = 1.0;
-
-ackermann_msgs::AckermannDriveStamped control_msg;
-
-int throttle = 4;
-
-// -----------------------------
-
-//ȭ�� resize
-#define width 960/2   //960
-#define length 540/2   // 540
-
-//�� �������� ���� �Ӱ谪.
-#define THRESHOLD 5  //5
-
-
-#define LINE_LENGTH 25         //������ ����
-#define LINE 100               //������ �Ӹ� ��ġ
-
-#define GO_BACK_STOP_TIME 200     //  ������ 200ȸ frame �� ����
-
-// stop Point ��ġ   (offset �� Poin2�� ������)
-#define stop_x_offset 5
-#define stop_y_offset 10
-
-
-double avg = 0;
-double sum_ = 0;
-int temp = 0;
-double angle;
-
-
-int fps = 500;
-
-Mat frame, gray, bi;
-Mat Roi;
-Mat hsv;
-Mat hsv_s;
-Mat a, b;
-Mat frame2;
-
-int framecount2_R = 0;
-int framecount3_R = 0;
-
-int r0_p2=0;
-int r0_p3=0;
-
-int times = 0;
-int ready = 0;
-bool go_back = false;
-int go_back_stop_time = 0;
-
-Point right_P2;
-Point right_P3;
-
-Point stop_Point;
-
-LaneDetect linedetect;
-
-/*
-Mat RotateImage(Mat img, int angle)
+ParkingNode::ParkingNode()
 {
-	// ���� �߽ɱ��� ȸ��
-	CvPoint2D32f center = cvPoint2D32f(img.cols / 2, img.rows / 2);
 
-	// ������ ������ġ (x,y) ���� ȸ��
-	//CvPoint2D32f center = cvPoint2D32f(x, y);
-	CvMat* rotation = cvCreateMat(2, 3, CV_32FC1);
-	cv2DRotationMatrix(center, double(angle), 1.0, rotation);
-
-	cvWarpAffine(&IplImage(img), &IplImage(img), rotation);
-
-	cvReleaseMat(&rotation);
-
-	return img;
-}
-*/
-
-void makeControlMsg(int steering, int throttle)
-{
-	control_msg.drive.steering_angle = steering;
-	control_msg.drive.speed = throttle;
 }
 
-Mat parseRawimg(const sensor_msgs::ImageConstPtr& image)
+void ParkingNode::getRosParamForUpdate()
 {
-	cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(image, sensor_msgs::image_encodings::BGR8);
-
-	Mat raw_img = cv_ptr->image;
-
-	if (raw_img.empty()) {
-		throw std::runtime_error("frame is empty!");
-	}
-
-	return raw_img;
+	nh_.getParam("resize_width", width);
+	nh_.getParam("resize_height", length);
+	nh_.getParam("steer_max_angle", STEER_MAX_ANGLE_);
+	nh_.getParam("gray_bin_thres", gray_bin_thres);
+	nh_.getParam("hsv_s_bin_thres", hsv_s_bin_thres);
+	nh_.getParam("angle_factor", (double)angle_factor / 100);
+	nh_.getParam("throttle", throttle_);
+	nh_.getParam("go_back_stop_time", GO_BACK_STOP_TIME);
 }
 
-void imageCallback(const sensor_msgs::ImageConstPtr& image)
+int LaneDetector::calculateSteerValue(int angle)
+{
+	int steer_control_value = 0;	// for parsing double value to int
+
+  if(angle < STEER_MAX_ANGLE_ && angle > (-1) * STEER_MAX_ANGLE_)
+  		steer_control_value = static_cast<int>( yaw_error_ * yaw_factor_);
+  	else if(angle >= STEER_MAX_ANGLE_) {
+  		steer_control_value = STEER_MAX_ANGLE_;
+  	}
+  	else if(angle <= (-1) * STEER_MAX_ANGLE_) {
+  		steer_control_value = (-1) * STEER_MAX_ANGLE_;
+  }
+
+	return steer_control_value;
+}
+
+void ParkingNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 {
 	try{
 		frame = parseRawimg(image);
@@ -123,15 +48,18 @@ void imageCallback(const sensor_msgs::ImageConstPtr& image)
 		cerr << e.what() << endl;
 	}
 
+  getRosParamForUpdate();
+
 
 	int64 t1 = getTickCount();
 
 	temp++;
 
 	resize(frame, frame, Size(width, length));
+//ADDED 05.04
+	Mat roi_frame = frame(Rect(0, 100, frame.rows, frame.cols - 100))
 	// frame = RotateImage(frame, 270);
-	frame = frame(Rect(0, 50, frame.cols, frame.rows - 50));
-	rotate(frame, frame, cv::ROTATE_90_CLOCKWISE);
+	rotate(frame, roi_frame, cv::ROTATE_90_CLOCKWISE);
 
 	cvtColor(frame, hsv, COLOR_BGR2HSV);
 	cvtColor(frame, gray, COLOR_BGR2GRAY);
@@ -141,11 +69,10 @@ void imageCallback(const sensor_msgs::ImageConstPtr& image)
 	split(hsv, hsv_planes);
 	hsv_s = hsv_planes[1];  //s�� ����
 
-	double bb = threshold(gray, b, 150, 255, THRESH_BINARY);   //110
-	double aa = threshold(hsv_s, a, 150, 255, THRESH_BINARY);
+	double bb = threshold(gray, b, gray_bin_thres, 255, THRESH_BINARY);   //110
+	double aa = threshold(hsv_s, a, hsv_s_bin_thres, 255, THRESH_BINARY);
 
-	//bi = a + b; // bgr, hsv ����ȭ �Ȱ� ��ġ��
-	bi = b;
+	bi = a + b; // bgr, hsv ����ȭ �Ȱ� ��ġ��
 
 	if (framecount2_R <1)	r0_p2 = linedetect.find_R0_x(bi, LINE, &framecount2_R , r0_p2);
 	if (framecount3_R <1)	r0_p3 = linedetect.find_R0_x(bi, LINE + LINE_LENGTH, &framecount3_R , r0_p3);
@@ -190,7 +117,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& image)
 		int dx = right_P2.x - right_P3.x;
 		angle = atan2(dx, dy) * 180 / CV_PI;
 		cout << "���� ready " << ready << "   ���Ⱒ : " << angle << endl;
-		makeControlMsg(angle * angle_factor, throttle);
+		makeControlMsg(calculateSteerValue(angle), throttle);
 	}
 
 	//������ ���Ⱒ ����
@@ -200,7 +127,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& image)
 		int dx = right_P3.x - right_P2.x;   // �̰� ������ �� �ݴ��̾��� �Ѵ�.
 	    angle = atan2(dx, dy) * 180 / CV_PI;
 
-		makeControlMsg(angle * angle_factor, (-1) * throttle);
+		makeControlMsg(calculateSteerValue(angle), (-1) * throttle);
 		go_back_stop_time = go_back_stop_time + 1;
 		cout << "������ �Դϴ�.     " << "go_back_time  :" << go_back_stop_time << "     ���Ⱒ : " << angle << endl;
 		//������ �����ð� �ϸ� ����
@@ -225,40 +152,34 @@ void imageCallback(const sensor_msgs::ImageConstPtr& image)
 	line(frame, right_P2 , right_P3 , Scalar(0, 255, 0), 5);
 	circle(frame, stop_Point, 1, Scalar(0, 0, 255), 5);
 
-	//imshow("gray_binary", b);
-	//imshow("hsv_s_binary", a);
+	imshow("gray_binary", a);
+	imshow("hsv_s_binary", b);
 	imshow("binary img", bi);
 	imshow("frame", frame);
 
 	waitKey(3);
 
-
 	control_pub.publish(control_msg);
 }
 
-int main(int argc, char** argv)
+
+Mat ParkingNode::parseRawimg(const sensor_msgs::ImageConstPtr& image)
 {
-	ros::init(argc, argv, "parking");
+	cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(image, sensor_msgs::image_encodings::BGR8);
 
-#if 1
+	Mat raw_img = cv_ptr->image;
 
-	ros::NodeHandle nh;
-
-	control_pub = nh.advertise<ackermann_msgs::AckermannDriveStamped>("ackermann", 100);
-	image_sub = nh.subscribe("/usb_cam/image_raw", 100, imageCallback);
-
-
-#else
-	VideoCapture cap(1);
-	//cap.open("cameraimage_color_camera3.mp4");
-
-	if (!cap.isOpened())
-	{
-		cout << "Not opened cap" << endl;
-		return -1;
+	if (raw_img.empty()) {
+		throw std::runtime_error("frame is empty!");
 	}
-#endif
 
-	ros::spin();
-	return 0;
+	return raw_img;
 }
+
+void ParkingNode::makeControlMsg(int steering, int throttle)
+{
+	control_msg.drive.steering_angle = steering;
+	control_msg.drive.speed = throttle;
+}
+
+// void printData()

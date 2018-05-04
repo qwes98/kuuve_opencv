@@ -56,9 +56,9 @@ Point VisionPathPlanner::detectLaneCenter(const int index)
     start_flag_arr_[index] = false;
   }
 
+    cout << "new_middle: " << new_middle.x << endl;
+    cout << "last_lane_middle_arr_: " << last_lane_middle_arr_[index].x << endl;
   if((abs(new_middle.x - last_lane_middle_arr_[index].x) > change_pixel_thres_) && !sustaining_arr_[index]) {
-    // cout << "new_middle: " << new_middle.x << endl;
-    // cout << "last_lane_middle_arr_: " << last_lane_middle_arr_[index].x << endl;
     cout <<  abs(new_middle.x - last_lane_middle_arr_[index].x) << " > " << change_pixel_thres_ << endl;
     time_after_detect_obstacle_arr_[index] = 0;
     sustaining_arr_[index] = true;
