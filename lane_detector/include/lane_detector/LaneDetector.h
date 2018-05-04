@@ -18,6 +18,8 @@ public:
 	bool setDetectYOffset(const int detect_y_offset, const int index) throw(my_out_of_range);
 	void setYawFactor(const double yaw_factor);
 	void setLateralFactor(const double lateral_factor);
+	void setRoiTopLocation(const int top_rate);
+	void setRoiBottomLocation(const int bottom_rate);
 
 	int getWidth() const;
 	int getHeight() const;
@@ -26,6 +28,8 @@ public:
 	int getDetectYOffset(const int index) const throw(my_out_of_range);
 	int getSteerMaxAngle() const;
 	int getRealSteerAngle() const;
+	int getRoiTopLocation() const;
+	int getRoiBottomLocation() const;
 	double getYawFactor() const;
 	double getLateralFactor() const;
 	double getOnceDetectTime() const;
@@ -76,6 +80,11 @@ protected:
 	// 화면 resize값
 	const int RESIZE_WIDTH_ = 480;
 	const int RESIZE_HEIGHT_ = 270;
+
+	// Roi top and bottom(y) location
+	// 0 is top of raw_img and 100 is bottom of raw_img
+	int roi_top_location_ = 50;
+	int roi_bottom_location_ = 100;
 
 	// 한 직선 보는 임계값
 	const int LINE_PIXEL_THRESHOLD = 5;

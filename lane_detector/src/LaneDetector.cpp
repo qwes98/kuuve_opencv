@@ -33,6 +33,9 @@ bool LaneDetector::setDetectYOffset(const int detect_y_offset, const int index)
 }
 void LaneDetector::setYawFactor(const double yaw_factor) { yaw_factor_ = yaw_factor; }
 void LaneDetector::setLateralFactor(const double lateral_factor) { lateral_factor_ = lateral_factor; }
+void LaneDetector::setRoiTopLocation(const int top_rate) { roi_top_location_ = top_rate; }
+void LaneDetector::setRoiBottomLocation(const int bottom_rate) { roi_bottom_location_ = bottom_rate; }
+
 
 
 int LaneDetector::getWidth() const { return RESIZE_WIDTH_; }
@@ -49,6 +52,8 @@ int LaneDetector::getDetectYOffset(const int index) const
   return detect_y_offset_arr_[index];
 }
 int LaneDetector::getSteerMaxAngle() const { return STEER_MAX_ANGLE_; }
+int LaneDetector::getRoiTopLocation() const { return roi_top_location_; }
+int LaneDetector::getRoiBottomLocation() const { return roi_bottom_location_; }
 double LaneDetector::getYawFactor() const { return yaw_factor_; }
 double LaneDetector::getLateralFactor() const { return lateral_factor_; }
 double LaneDetector::getOnceDetectTime() const { return once_detect_time_; }
@@ -107,8 +112,8 @@ void LaneDetector::visualizeLine(const int index) const
     throw_my_out_of_range(getOutOfRangeMsg(index, DETECT_LINE_COUNT_));
   }
 
-	line(resized_img_, cur_right_point_arr_[index] + Point(0, RESIZE_HEIGHT_ / 2), cur_left_point_arr_[index] + Point(0, RESIZE_HEIGHT_ / 2), Scalar(0, 255, 0), 5);
-	line(resized_img_, lane_middle_arr_[index] + Point(0, RESIZE_HEIGHT_ / 2), Point(resized_img_.cols / 2, resized_img_.rows), Scalar(0, 0, 255), 5);
+	line(resized_img_, cur_right_point_arr_[index] + Point(0, RESIZE_HEIGHT_ * (double)roi_top_location_ / 100), cur_left_point_arr_[index] + Point(0, RESIZE_HEIGHT_ * (double)roi_top_location_ / 100), Scalar(0, 255, 0), 5);
+	line(resized_img_, lane_middle_arr_[index] + Point(0, RESIZE_HEIGHT_ * (double)roi_top_location_ / 100), Point(RESIZE_WIDTH_ / 2, RESIZE_HEIGHT_ * (double)roi_bottom_location_ / 100), Scalar(0, 0, 255), 5);
 }
 
 void LaneDetector::showImg() const
@@ -200,7 +205,7 @@ void LaneDetector::preprocessImg(const cv::Mat& raw_img)
 {
 	resize(raw_img, resized_img_, Size(RESIZE_WIDTH_, RESIZE_HEIGHT_));
 
-	cvtToRoiBinaryImg(Point(0, RESIZE_HEIGHT_ / 2), Size(RESIZE_WIDTH_, RESIZE_HEIGHT_ / 2));
+	cvtToRoiBinaryImg(Point(0, RESIZE_HEIGHT_ * (double)roi_top_location_ / 100), Size(RESIZE_WIDTH_, RESIZE_HEIGHT_ * (1 - (double)(roi_top_location_ + (100 - roi_bottom_location_)) / 100)));
 }
 
 void LaneDetector::findLanePoints()

@@ -151,15 +151,19 @@ void CrosswalkStopNode::getRosParamForConstValue(int& width, int& height, int& s
 
 void CrosswalkStopNode::getRosParamForUpdate()
 {
-	int paramArr[3];
+	int paramArr[5];
 	nh_.getParam("bin_thres", paramArr[0]);
 	nh_.getParam("yaw_factor", paramArr[1]);
 	nh_.getParam("lateral_factor", paramArr[2]);
+	nh_.getParam("roi_top_location", paramArr[3]);
+	nh_.getParam("roi_bottom_location", paramArr[4]);
 	nh_.getParam("throttle", throttle_);
 
 	crosswalkstop_ptr_->setGrayBinThres(paramArr[0]);
 	crosswalkstop_ptr_->setYawFactor((double)paramArr[1] / 100);
 	crosswalkstop_ptr_->setLateralFactor((double)paramArr[2] / 100);
+	crosswalkstop_ptr_->setRoiTopLocation(paramArr[3]);
+	crosswalkstop_ptr_->setRoiBottomLocation(paramArr[4]);
 
 	int detect_line_count = crosswalkstop_ptr_->getDetectLineCount();
 	for(int i = 0; i < detect_line_count; i++) {
