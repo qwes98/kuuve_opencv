@@ -6,6 +6,14 @@ using namespace cv;
 
 ParkingNode::ParkingNode()
 {
+	nh_ = ros::NodeHandle("~");
+
+	control_pub = nh_.advertise<ackermann_msgs::AckermannDriveStamped>("ackermann", 100);
+
+	image_sub = nh_.subscribe("/usb_cam/image_raw", 100, &ParkingNode::imageCallback, this);
+
+	getRosParamForUpdate();
+
 
 }
 
@@ -16,25 +24,45 @@ void ParkingNode::getRosParamForUpdate()
 	nh_.getParam("steer_max_angle", STEER_MAX_ANGLE_);
 	nh_.getParam("gray_bin_thres", gray_bin_thres);
 	nh_.getParam("hsv_s_bin_thres", hsv_s_bin_thres);
-	nh_.getParam("angle_factor", (double)angle_factor / 100);
-	nh_.getParam("throttle", throttle_);
+	nh_.getParam("throttle", throttle);
 	nh_.getParam("go_back_stop_time", GO_BACK_STOP_TIME);
+	nh_.getParam("roi_top_location", roi_top_location);
+	nh_.getParam("roi_bottom_location", roi_bottom_location);
+
+	int yaw_factor_tmp = 0;
+	nh_.getParam("yaw_factor", yaw_factor_tmp);
+	yaw_factor = (double)yaw_factor_tmp / 100;
+
+	int lateral_factor_tmp = 0;
+	nh_.getParam("lateral_factor", lateral_factor_tmp);
+	lateral_factor = (double)lateral_factor_tmp / 100;
 }
 
-int LaneDetector::calculateSteerValue(int angle)
+int ParkingNode::calculateSteerValue(const int center_steer_control_value, const int max_steer_control_value)
 {
-	int steer_control_value = 0;	// for parsing double value to int
+	int steer_control_value = 0;// for parsing double value to int
+	const int steer_offset = max_steer_control_value - center_steer_control_value;  // center ~ max
 
-  if(angle < STEER_MAX_ANGLE_ && angle > (-1) * STEER_MAX_ANGLE_)
-  		steer_control_value = static_cast<int>( yaw_error_ * yaw_factor_);
-  	else if(angle >= STEER_MAX_ANGLE_) {
-  		steer_control_value = STEER_MAX_ANGLE_;
-  	}
-  	else if(angle <= (-1) * STEER_MAX_ANGLE_) {
-  		steer_control_value = (-1) * STEER_MAX_ANGLE_;
+ if(yaw_error * yaw_factor < STEER_MAX_ANGLE_ && yaw_error * yaw_factor > (-1) * STEER_MAX_ANGLE_)
+	steer_control_value = static_cast<int>(center_steer_control_value + steer_offset / STEER_MAX_ANGLE_ * (yaw_error * yaw_factor) + lateral_error * lateral_factor);
+else if(yaw_error * yaw_factor >= STEER_MAX_ANGLE_) {
+	steer_control_value = center_steer_control_value + steer_offset;
+	yaw_error = STEER_MAX_ANGLE_ / yaw_factor;// 		for print angle on console
+}
+else if(yaw_error * yaw_factor <= (-1) * STEER_MAX_ANGLE_) {
+		steer_control_value = center_steer_control_value - steer_offset;
+		yaw_error = (-1) * STEER_MAX_ANGLE_ / yaw_factor;
   }
 
 	return steer_control_value;
+}
+
+void ParkingNode::getRoiFrame()
+{
+	int roi_left_top_y = frame.rows * (double)roi_top_location / 100;
+	int roi_img_height = frame.rows - frame.rows * (double)(roi_top_location + (100 - roi_bottom_location)) / 100;
+
+	frame = frame(Rect(0, roi_left_top_y, frame.rows, roi_img_height));
 }
 
 void ParkingNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
@@ -56,10 +84,9 @@ void ParkingNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 	temp++;
 
 	resize(frame, frame, Size(width, length));
-//ADDED 05.04
-	Mat roi_frame = frame(Rect(0, 100, frame.rows, frame.cols - 100))
+	getRoiFrame();
 	// frame = RotateImage(frame, 270);
-	rotate(frame, roi_frame, cv::ROTATE_90_CLOCKWISE);
+	rotate(frame, frame, cv::ROTATE_90_CLOCKWISE);
 
 	cvtColor(frame, hsv, COLOR_BGR2HSV);
 	cvtColor(frame, gray, COLOR_BGR2GRAY);
@@ -104,7 +131,7 @@ void ParkingNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 			makeControlMsg(0,0);
 			go_back = true;
 			// 5�ʰ� ����
-			cout << "times = " << times << "   ���Ⱒ : " << angle << endl;
+			cout << "times = " << times << "   ���Ⱒ : " << yaw_error << endl;
 		}
 		ready = ready + 1;
 
@@ -115,9 +142,9 @@ void ParkingNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 	{
 		int dy = abs(LINE + LINE_LENGTH) - abs(LINE);
 		int dx = right_P2.x - right_P3.x;
-		angle = atan2(dx, dy) * 180 / CV_PI;
-		cout << "���� ready " << ready << "   ���Ⱒ : " << angle << endl;
-		makeControlMsg(calculateSteerValue(angle), throttle);
+		yaw_error = atan2(dx, dy) * 180 / CV_PI;
+		cout << "���� ready " << ready << "   ���Ⱒ : " << yaw_error << endl;
+		makeControlMsg(calculateSteerValue(0, 26), throttle);
 	}
 
 	//������ ���Ⱒ ����
@@ -125,11 +152,11 @@ void ParkingNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 	{
 		int dy = abs(LINE + LINE_LENGTH) - abs(LINE);
 		int dx = right_P3.x - right_P2.x;   // �̰� ������ �� �ݴ��̾��� �Ѵ�.
-	    angle = atan2(dx, dy) * 180 / CV_PI;
+	    yaw_error = atan2(dx, dy) * 180 / CV_PI;
 
-		makeControlMsg(calculateSteerValue(angle), (-1) * throttle);
+		makeControlMsg(calculateSteerValue(0, 26), (-1) * throttle);
 		go_back_stop_time = go_back_stop_time + 1;
-		cout << "������ �Դϴ�.     " << "go_back_time  :" << go_back_stop_time << "     ���Ⱒ : " << angle << endl;
+		cout << "������ �Դϴ�.     " << "go_back_time  :" << go_back_stop_time << "     ���Ⱒ : " << yaw_error << endl;
 		//������ �����ð� �ϸ� ����
 		if (go_back_stop_time > GO_BACK_STOP_TIME)
 		{
@@ -146,14 +173,14 @@ void ParkingNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 	sum_ += ms;
 	avg = sum_ / temp;
 
-	//cout << "it took : " << ms << "ms." << "���� : " << avg << " �ʴ� ó�� �����Ӽ� : " << 1000 / avg << "  ���Ⱒ : " << angle << endl;
+	//cout << "it took : " << ms << "ms." << "���� : " << avg << " �ʴ� ó�� �����Ӽ� : " << 1000 / avg << "  ���Ⱒ : " << yaw_error << endl;
 
 
 	line(frame, right_P2 , right_P3 , Scalar(0, 255, 0), 5);
 	circle(frame, stop_Point, 1, Scalar(0, 0, 255), 5);
 
-	imshow("gray_binary", a);
-	imshow("hsv_s_binary", b);
+	imshow("gray_binary", b);
+	imshow("hsv_s_binary", a);
 	imshow("binary img", bi);
 	imshow("frame", frame);
 

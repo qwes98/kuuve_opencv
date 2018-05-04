@@ -145,7 +145,7 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(kuuve_parking src/main.cpp src/LineDetector.cpp)
+add_executable(kuuve_parking src/main.cpp src/LineDetector.cpp src/ParkingNode.cpp)
 #add_dependencies(test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(kuuve_parking
   ${catkin_LIBRARIES}

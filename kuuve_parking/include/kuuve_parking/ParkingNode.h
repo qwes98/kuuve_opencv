@@ -23,19 +23,22 @@ public:
 private:
 	void getRosParamForUpdate();
 
+	void getRoiFrame();
+
 	cv::Mat parseRawimg(const sensor_msgs::ImageConstPtr& image);
 
-  int calculateSteerValue(int angle);
+  int calculateSteerValue(const int center_steer_control_value, const int max_steer_control_value);
 
 	void makeControlMsg(int steering, int throttle);
 	// void printData();
 
 private:
-	ros::NodeHandle nh;
+	ros::NodeHandle nh_;
 	ros::Publisher control_pub;
 	ros::Subscriber image_sub;
 
-  double angle_factor = 1.0;
+  double yaw_factor = 1.0;
+  double lateral_factor = 1.0;
 
   ackermann_msgs::AckermannDriveStamped control_msg;
 
@@ -45,6 +48,10 @@ private:
 
   int gray_bin_thres = 180;
   int hsv_s_bin_thres = 180;
+
+  // 0 ~ 100
+  int roi_top_location = 0;
+  int roi_bottom_location = 100;
 
 
   //ȭ�� resize
@@ -68,17 +75,18 @@ private:
   double avg = 0;
   double sum_ = 0;
   int temp = 0;
-  double angle;
+  double yaw_error;
+  double lateral_error;
 
 
   int fps = 500;
 
-  Mat frame, gray, bi;
-  Mat Roi;
-  Mat hsv;
-  Mat hsv_s;
-  Mat a, b;
-  Mat frame2;
+  cv::Mat frame, gray, bi;
+  cv::Mat Roi;
+  cv::Mat hsv;
+  cv::Mat hsv_s;
+  cv::Mat a, b;
+  cv::Mat frame2;
 
   int framecount2_R = 0;
   int framecount3_R = 0;
@@ -91,10 +99,10 @@ private:
   bool go_back = false;
   int go_back_stop_time = 0;
 
-  Point right_P2;
-  Point right_P3;
+  cv::Point right_P2;
+  cv::Point right_P3;
 
-  Point stop_Point;
+  cv::Point stop_Point;
 
   LaneDetect linedetect;
 
