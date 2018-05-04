@@ -28,6 +28,10 @@ void ParkingNode::getRosParamForUpdate()
 	nh_.getParam("go_back_stop_time", GO_BACK_STOP_TIME);
 	nh_.getParam("roi_top_location", roi_top_location);
 	nh_.getParam("roi_bottom_location", roi_bottom_location);
+	nh_.getParam("detect_y_offset", LINE);
+	nh_.getParam("line_length", LINE_LENGTH);
+	nh_.getParam("stop_x_offset", stop_x_offset);
+	nh_.getParam("stop_y_offset", stop_y_offset);
 
 	int yaw_factor_tmp = 0;
 	nh_.getParam("yaw_factor", yaw_factor_tmp);
@@ -64,6 +68,21 @@ void ParkingNode::getRoiFrame()
 
 	frame = frame(Rect(0, roi_left_top_y, frame.rows, roi_img_height));
 }
+
+void ParkingNode::printData()
+{
+	cout << "#### Control ####" << endl;
+	cout << "steering angle: " << steer_value << endl;
+	cout << "throttle: " << throttle << endl;
+	cout << "#### Ros Param ####" << endl;
+	cout << "gray_bin_thres: " << gray_bin_thres << endl;
+	cout << "hsv_s_bin_thres: " << hsv_s_bin_thres << endl;
+	cout << "detect_y_offset: " << LINE << endl;
+	cout << "line_length: " << LINE_LENGTH << endl;
+	cout << "yaw_factor: " << yaw_factor * 100 << "% -> " << yaw_factor << endl;
+	cout << "lateral_factor: " << lateral_factor * 100 << "% -> " << lateral_factor << endl;
+	cout << "---------------------------------" << endl;
+}   
 
 void ParkingNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 {
@@ -128,7 +147,8 @@ void ParkingNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 			cout << " ���� ���� �ϼ��� " << endl;
 			times = times + 1;
 			// times == 1 -> 정지 flag
-			makeControlMsg(0,0);
+			steer_value = 0;
+			makeControlMsg(steer_value,0);
 			go_back = true;
 			// 5�ʰ� ����
 			cout << "times = " << times << "   ���Ⱒ : " << yaw_error << endl;
@@ -143,8 +163,11 @@ void ParkingNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 		int dy = abs(LINE + LINE_LENGTH) - abs(LINE);
 		int dx = right_P2.x - right_P3.x;
 		yaw_error = atan2(dx, dy) * 180 / CV_PI;
+		lateral_error = right_P2.x;
 		cout << "���� ready " << ready << "   ���Ⱒ : " << yaw_error << endl;
-		makeControlMsg(calculateSteerValue(0, 26), throttle);
+
+		steer_value = calculateSteerValue(0, 26);
+		makeControlMsg(steer_value, throttle);
 	}
 
 	//������ ���Ⱒ ����
@@ -153,8 +176,10 @@ void ParkingNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 		int dy = abs(LINE + LINE_LENGTH) - abs(LINE);
 		int dx = right_P3.x - right_P2.x;   // �̰� ������ �� �ݴ��̾��� �Ѵ�.
 	    yaw_error = atan2(dx, dy) * 180 / CV_PI;
+		lateral_error = right_P2.x;
 
-		makeControlMsg(calculateSteerValue(0, 26), (-1) * throttle);
+		steer_value = calculateSteerValue(0, 26);
+		makeControlMsg(steer_value, (-1) * throttle);
 		go_back_stop_time = go_back_stop_time + 1;
 		cout << "������ �Դϴ�.     " << "go_back_time  :" << go_back_stop_time << "     ���Ⱒ : " << yaw_error << endl;
 		//������ �����ð� �ϸ� ����
@@ -162,7 +187,8 @@ void ParkingNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 		{
 			// ���� ���带 ���� ���ڽ� ���� ���带 Ų��.
 			// go_back_stop_time은 최종 정지하는 시점
-			makeControlMsg(0, 0);
+			steer_value = 0;
+			makeControlMsg(steer_value, 0);
 		}
 	}
 
@@ -185,6 +211,8 @@ void ParkingNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 	imshow("frame", frame);
 
 	waitKey(3);
+
+	printData();
 
 	control_pub.publish(control_msg);
 }

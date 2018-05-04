@@ -21,6 +21,8 @@ public:
 	void imageCallback(const sensor_msgs::ImageConstPtr& image);
 
 private:
+	void printData();
+
 	void getRosParamForUpdate();
 
 	void getRoiFrame();
@@ -43,6 +45,7 @@ private:
   ackermann_msgs::AckermannDriveStamped control_msg;
 
   int throttle = 4;
+  int steer_value;
 
   int STEER_MAX_ANGLE_ = 26;
 
