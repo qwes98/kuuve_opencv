@@ -153,7 +153,7 @@ void LaneDetectorNode::getRosParamForConstValue(int& width, int& height, int& st
 
 void LaneDetectorNode::getRosParamForUpdate()
 {
-	int paramArr[8];
+	int paramArr[9];
 	nh_.getParam("gray_bin_thres", paramArr[0]);
 	nh_.getParam("hsv_s_bin_thres", paramArr[1]);
 	nh_.getParam("left_detect_offset", paramArr[2]);
@@ -162,6 +162,7 @@ void LaneDetectorNode::getRosParamForUpdate()
 	nh_.getParam("lateral_factor", paramArr[5]);
 	nh_.getParam("roi_top_location", paramArr[6]);
 	nh_.getParam("roi_bottom_location", paramArr[7]);
+	nh_.getParam("continuous_detect_pixel", paramArr[8]);
 	nh_.getParam("throttle", throttle_);
 
 	lanedetector_ptr_->setGrayBinThres(paramArr[0]);
@@ -172,6 +173,7 @@ void LaneDetectorNode::getRosParamForUpdate()
 	lanedetector_ptr_->setLateralFactor((double)paramArr[5] / 100);
 	lanedetector_ptr_->setRoiTopLocation(paramArr[6]);
 	lanedetector_ptr_->setRoiBottomLocation(paramArr[7]);
+	lanedetector_ptr_->setContiDetectPixel(paramArr[8]);
 
 	int detect_line_count = lanedetector_ptr_->getDetectLineCount();
 	for(int i = 0; i < detect_line_count; i++) {

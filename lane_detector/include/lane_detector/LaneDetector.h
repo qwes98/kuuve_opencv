@@ -20,6 +20,8 @@ public:
 	void setLateralFactor(const double lateral_factor);
 	void setRoiTopLocation(const int top_rate);
 	void setRoiBottomLocation(const int bottom_rate);
+//ADDED
+	void setContiDetectPixel(const int continuous_detect_pixel);
 
 	int getWidth() const;
 	int getHeight() const;
@@ -30,6 +32,8 @@ public:
 	int getRealSteerAngle() const;
 	int getRoiTopLocation() const;
 	int getRoiBottomLocation() const;
+//ADDED
+	int getContiDetectPixel() const;
 	double getYawFactor() const;
 	double getLateralFactor() const;
 	double getOnceDetectTime() const;
@@ -87,7 +91,7 @@ protected:
 	int roi_bottom_location_ = 100;
 
 	// 한 직선 보는 임계값
-	const int LINE_PIXEL_THRESHOLD = 5;
+	const int LINE_PIXEL_THRESHOLD = 11;
 
 	// 차선 검출 시 사용하는 수평 라인의 갯수
 	const int DETECT_LINE_COUNT_ = 1;

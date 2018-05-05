@@ -35,6 +35,11 @@ void LaneDetector::setYawFactor(const double yaw_factor) { yaw_factor_ = yaw_fac
 void LaneDetector::setLateralFactor(const double lateral_factor) { lateral_factor_ = lateral_factor; }
 void LaneDetector::setRoiTopLocation(const int top_rate) { roi_top_location_ = top_rate; }
 void LaneDetector::setRoiBottomLocation(const int bottom_rate) { roi_bottom_location_ = bottom_rate; }
+void LaneDetector::setContiDetectPixel(const int continuous_detect_pixel)
+{
+  for(int i = 0; i < DETECT_LINE_COUNT_; i++)
+    line_point_detector_arr_[i].setContiDetectPixel(continuous_detect_pixel);
+}
 
 
 
@@ -54,6 +59,7 @@ int LaneDetector::getDetectYOffset(const int index) const
 int LaneDetector::getSteerMaxAngle() const { return STEER_MAX_ANGLE_; }
 int LaneDetector::getRoiTopLocation() const { return roi_top_location_; }
 int LaneDetector::getRoiBottomLocation() const { return roi_bottom_location_; }
+int LaneDetector::getContiDetectPixel() const { return line_point_detector_arr_[0].getContiDetectPixel(); }
 double LaneDetector::getYawFactor() const { return yaw_factor_; }
 double LaneDetector::getLateralFactor() const { return lateral_factor_; }
 double LaneDetector::getOnceDetectTime() const { return once_detect_time_; }

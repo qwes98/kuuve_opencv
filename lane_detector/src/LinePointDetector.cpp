@@ -7,9 +7,39 @@ using namespace cv;
 
 bool LinePointDetector::getLeftResetFlag() const { return left_reset_flag_; }
 bool LinePointDetector::getRightResetFlag() const { return right_reset_flag_; }
+int LinePointDetector::getContiDetectPixel() const { return continuous_detect_pixel_; }
 
 void LinePointDetector::setLeftResetFlag(const bool left_reset_flag) { left_reset_flag_ = left_reset_flag; }
 void LinePointDetector::setRightResetFlag(const bool right_reset_flag) { right_reset_flag_ = right_reset_flag; }
+void LinePointDetector::setContiDetectPixel(const int continuous_detect_pixel) { continuous_detect_pixel_ = continuous_detect_pixel; }
+
+
+bool LinePointDetector::laneIsDiscontiOnIn2Out(const Mat& binary_img, const int pre_point, const int detect_y_offset)
+{
+	for(int i = 0; i < continuous_detect_pixel_; i++) {
+			if(binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100, pre_point + (i - continuous_detect_pixel_ / 2) == 255))
+				return false;
+	}
+
+	return true;
+}
+
+bool LinePointDetector::laneIsDiscontiOnOut2In(const Mat& binary_img, const int pre_point, const int detect_y_offset, const string direction)
+{
+	if(direction == "left")
+		for(int i = 0; i < continuous_detect_pixel_ / 2; i++) {
+				if(binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100, pre_point + i == 255))
+					return false;
+		}
+
+	else if(direction == "right")
+		for(int i = 0; i < continuous_detect_pixel_ / 2; i++) {
+				if(binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100, pre_point - i == 255))
+					return false;
+		}
+
+	return true;
+}
 
 /**
  * 왼쪽 끝부터 오른쪽으로 가면서 흰색픽셀을 찾는 알고리즘
@@ -20,7 +50,7 @@ int LinePointDetector::find_L0_x_out2in(const Mat& binary_img, const int detect_
 {
 	int l0_x = last_point;
 
-	for (int i = 1; i < binary_img.cols-1; i++)
+	for (int i = 1; i < binary_img.cols - 1; i++)
 	{
 		if (binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100, i) == 255)
 		{
@@ -41,7 +71,7 @@ int LinePointDetector::find_R0_x_out2in(const Mat& binary_img, const int detect_
 {
 	int r0_x = last_point;
 
-	for (int i = 1; i < binary_img.cols-1; i++)
+	for (int i = 1; i < binary_img.cols - 1; i++)
 	{
 		if (binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100, binary_img.cols - i) == 255)
 		{
@@ -66,15 +96,12 @@ int LinePointDetector::find_LN_x_out2in(const Mat& binary_img, const int pre_poi
 {
 	int Left_N_x = pre_point;
 
-	for (int i = 1; i < binary_img.cols-1; i++)
+	for (int i = 1; i < binary_img.cols - continuous_detect_pixel_ / 2 - 2; i++)
 	{
 		// 불연속 선 이라면
-		if (!(binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100, pre_point) == 255)
-			&& !(binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100 + 1, pre_point) == 255)
-			&& !(binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100 + 2, pre_point) == 255)
-			&& !(binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100 + 3, pre_point) == 255))
+		if (laneIsDiscontiOnOut2In(binary_img, pre_point, detect_y_offset, "left"))
 		{
-			for (int i = 1; i < binary_img.cols; i++)
+			for (int i = 1; i < binary_img.cols - continuous_detect_pixel_ / 2 - 2; i++)
 			{
 				if (binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100, i) == 255)
 				{
@@ -107,15 +134,12 @@ int LinePointDetector::find_RN_x_out2in(const Mat& binary_img, const int pre_poi
 {
 	int Right_N_x = pre_point;
 
-	for (int i = 1; i < binary_img.cols-1; i++)
+	for (int i = 1; i < binary_img.cols - continuous_detect_pixel_ / 2 - 2; i++)
 	{
 		// 불연속 선 이라면
-		if (!(binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100, pre_point) == 255)
-			&& !(binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100 + 1, pre_point) == 255)
-			&& !(binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100 + 2, pre_point) == 255)
-			&& !(binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100 + 3, pre_point) == 255))
+		if (laneIsDiscontiOnOut2In(binary_img, pre_point, detect_y_offset, "right"))
 		{
-			for (int i = 1; i < binary_img.cols; i++)
+			for (int i = 1; i < binary_img.cols - continuous_detect_pixel_ / 2 - 2; i++)
 			{
 				if (binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100, binary_img.cols - i) == 255)
 				{
@@ -178,15 +202,12 @@ int LinePointDetector::find_LN_x_in2out(const Mat& binary_img, const int pre_poi
 {
 	int Left_N_x = pre_point;
 
-	for (int i = binary_img.cols / 2 + offset; i > 1; i--)
+	for (int i = binary_img.cols / 2 + offset; i > continuous_detect_pixel_ / 2 + 2; i--)
 	{
 		// 불연속 선 이라면
-		if (!(binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100, pre_point) == 255)
-			&& !(binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100 - 1, pre_point) == 255)
-			&& !(binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100 - 2, pre_point) == 255)
-			&& !(binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100 - 3, pre_point) == 255))
+		if (laneIsDiscontiOnIn2Out(binary_img, pre_point, detect_y_offset))
 		{
-			for (int i = binary_img.cols / 2 + offset; i > 1; i--)
+			for (int i = binary_img.cols / 2 + offset; i > continuous_detect_pixel_ / 2 + 2; i--)
 			{
 				if (binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100, i) == 255)
 				{
@@ -219,15 +240,12 @@ int LinePointDetector::find_RN_x_in2out(const Mat& binary_img, const int pre_poi
 {
 	int Right_N_x = pre_point;
 
-	for (int i = binary_img.cols / 2 - offset; i < binary_img.cols-1; i++)
+	for (int i = binary_img.cols / 2 - offset; i < binary_img.cols - continuous_detect_pixel_ / 2 - 2; i++)
 	{
 		// 불연속 선 이라면
-		if (!(binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100, pre_point) == 255)
-			&& !(binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100 - 1, pre_point) == 255)
-			&& !(binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100 - 2, pre_point) == 255)
-			&& !(binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100 - 3, pre_point) == 255))
+		if (laneIsDiscontiOnIn2Out(binary_img, pre_point, detect_y_offset))
 		{
-			for (int i = binary_img.cols / 2 - offset; i < binary_img.cols; i++)
+			for (int i = binary_img.cols / 2 - offset; i < binary_img.cols - continuous_detect_pixel_ / 2 - 2; i++)
 			{
 				if (binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100, i) == 255)
 				{
