@@ -25,7 +25,7 @@ int LaneDetect::find_R0_x(Mat binary_img, int img_height , int *framecount_R ,in
 {
 	int r0_x = Left0_x;
 
-	for (int i = 1; i < binary_img.cols-1; i++)
+	for (int i = 10; i < binary_img.cols-17; i++)
 	{
 		if (binary_img.at<uchar>(img_height , binary_img.cols - i) == 255)
 		{
@@ -86,27 +86,45 @@ int LaneDetect::find_RN_x(Mat binary_img, int Right0_x, int img_height, int THRE
 {
 	int Right_N_x = Right0_x;
 
-	for (int i = 1; i < binary_img.cols-1; i++)
+	// i = 7 -> 맨 오른쪽 끝점
+	// �ҿ��� �� �̶���
+	if (!(binary_img.at<uchar>( img_height, Right0_x) == 255)
+		&& !(binary_img.at<uchar>( img_height, Right0_x) == 255)
+		&& !(binary_img.at<uchar>( img_height, Right0_x + 1) == 255)
+		&& !(binary_img.at<uchar>( img_height, Right0_x + 2) == 255)
+		&& !(binary_img.at<uchar>( img_height, Right0_x + 3) == 255)
+		&& !(binary_img.at<uchar>( img_height, Right0_x + 4) == 255)
+		&& !(binary_img.at<uchar>( img_height, Right0_x + 5) == 255)
+		&& !(binary_img.at<uchar>( img_height, Right0_x + 6) == 255)
+		&& !(binary_img.at<uchar>( img_height, Right0_x + 7) == 255)
+		&& !(binary_img.at<uchar>( img_height, Right0_x - 1) == 255)
+		&& !(binary_img.at<uchar>( img_height, Right0_x - 2) == 255)
+		&& !(binary_img.at<uchar>( img_height, Right0_x - 3) == 255)
+		&& !(binary_img.at<uchar>( img_height, Right0_x - 4) == 255)
+		&& !(binary_img.at<uchar>( img_height, Right0_x - 5) == 255)
+		&& !(binary_img.at<uchar>( img_height, Right0_x - 6) == 255)
+		&& !(binary_img.at<uchar>( img_height, Right0_x - 7) == 255)
+		&& !(binary_img.at<uchar>( img_height, Right0_x - 8) == 255)
+		&& !(binary_img.at<uchar>( img_height, Right0_x - 9) == 255)
+		&& !(binary_img.at<uchar>( img_height, Right0_x - 10) == 255)
+		&& !(binary_img.at<uchar>( img_height, Right0_x - 11) == 255)
+		&& !(binary_img.at<uchar>( img_height, Right0_x - 12) == 255)
+		&& !(binary_img.at<uchar>( img_height, Right0_x - 13) == 255)
+		&& !(binary_img.at<uchar>( img_height, Right0_x - 14) == 255)
+		&& !(binary_img.at<uchar>( img_height, Right0_x - 15) == 255))
 	{
-		// �ҿ��� �� �̶���
-		if (!(binary_img.at<uchar>( img_height, Right0_x) == 255)
-			&& !(binary_img.at<uchar>( img_height - 1, Right0_x ) == 255)
-			&& !(binary_img.at<uchar>(img_height - 2, Right0_x ) == 255)
-			&& !(binary_img.at<uchar>( img_height - 3, Right0_x ) == 255))
+		for (int i = 10; i < binary_img.cols - 17; i++)
 		{
-			for (int i = 1; i < binary_img.cols; i++)
+			if (binary_img.at<uchar>( img_height, binary_img.cols - i) == 255)
 			{
-				if (binary_img.at<uchar>( img_height, binary_img.cols - i) == 255)
-				{
-					Right_N_x = binary_img.cols - i;
-				//	cout << "������ �ҿ����� �Դϴ�. " << Right_N_x << endl;
-					break;
-				}
+				Right_N_x = binary_img.cols - i;
+			//	cout << "������ �ҿ����� �Դϴ�. " << Right_N_x << endl;
+				break;
 			}
-
-			break;
 		}
-		else // ���Ӽ� �̶���
+	} else // ���Ӽ� �̶���
+	{
+		for (int i = 10; i < binary_img.cols - 17; i++)
 		{
 			if (binary_img.at<uchar>( img_height, binary_img.cols - i) == 255)
 			{

@@ -37,8 +37,8 @@ int throttle = 4;
 #define GO_BACK_STOP_TIME 200     //  ������ 200ȸ frame �� ����
 
 // stop Point ��ġ   (offset �� Poin2�� ������)
-#define stop_x_offset 5
-#define stop_y_offset 10
+#define forward_stop_x_offset_ 5
+#define forward_stop_y_offset_ 10
 
 
 double avg = 0;
@@ -63,14 +63,14 @@ int r0_p2=0;
 int r0_p3=0;
 
 int times = 0;
-int ready = 0;
+int ready_timer_ = 0;
 bool go_back = false;
 int go_back_stop_time = 0;
 
 Point right_P2;
 Point right_P3;
 
-Point stop_Point;
+Point forward_stop_point_;
 
 LaneDetect linedetect;
 
@@ -159,17 +159,17 @@ void imageCallback(const sensor_msgs::ImageConstPtr& image)
 	r0_p3 = right_P3.x;
 
 
-	stop_Point.x = right_P2.x - stop_x_offset ;
-	stop_Point.y = right_P2.y - stop_y_offset ;
+	forward_stop_point_.x = right_P2.x - forward_stop_x_offset_ ;
+	forward_stop_point_.y = right_P2.y - forward_stop_y_offset_ ;
 
-//ready -> rosparam
+//ready_timer_ -> rosparam
 	// ���� ����
 	if (times == 0)
 	{
-		// ready > 50 ������ �������尡 ��������
+		// ready_timer_ > 50 ������ �������尡 ��������
 		// �ʱ� �������� �����Ǵ��� ������ ���� ����.
-		// ready �� 50�� �ѱ��������� ���� �غ�. ������ �׶����� �����Ǵ�.
-		if (!(bi.at<uchar>(stop_Point.y, stop_Point.x) == 255) && ready > 50)	// ready -> 처음에는 0, 프레임이 들어올수록 1씩 증가 => for 안정적
+		// ready_timer_ �� 50�� �ѱ��������� ���� �غ�. ������ �׶����� �����Ǵ�.
+		if (!(bi.at<uchar>(forward_stop_point_.y, forward_stop_point_.x) == 255) && ready_timer_ > 50)	// ready_timer_ -> 처음에는 0, 프레임이 들어올수록 1씩 증가 => for 안정적
 		{
 			cout << " ���� ���� �ϼ��� " << endl;
 			times = times + 1;
@@ -179,7 +179,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& image)
 			// 5�ʰ� ����
 			cout << "times = " << times << "   ���Ⱒ : " << angle << endl;
 		}
-		ready = ready + 1;
+		ready_timer_ = ready_timer_ + 1;
 
 	}
 
@@ -189,7 +189,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& image)
 		int dy = abs(LINE + LINE_LENGTH) - abs(LINE);
 		int dx = right_P2.x - right_P3.x;
 		angle = atan2(dx, dy) * 180 / CV_PI;
-		cout << "���� ready " << ready << "   ���Ⱒ : " << angle << endl;
+		cout << "���� ready_timer_ " << ready_timer_ << "   ���Ⱒ : " << angle << endl;
 		makeControlMsg(angle * angle_factor, throttle);
 	}
 
@@ -223,7 +223,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& image)
 
 
 	line(frame, right_P2 , right_P3 , Scalar(0, 255, 0), 5);
-	circle(frame, stop_Point, 1, Scalar(0, 0, 255), 5);
+	circle(frame, forward_stop_point_, 1, Scalar(0, 0, 255), 5);
 
 	//imshow("gray_binary", b);
 	//imshow("hsv_s_binary", a);

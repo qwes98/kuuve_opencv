@@ -23,6 +23,8 @@ public:
 private:
 	void printData();
 
+	void getRosParamForInitiation();
+
 	void getRosParamForUpdate();
 
 	void getRoiFrame();
@@ -33,6 +35,9 @@ private:
 
 	void makeControlMsg(int steering, int throttle);
 	// void printData();
+
+private:
+	bool readyIsFinished();
 
 private:
 	ros::NodeHandle nh_;
@@ -56,6 +61,9 @@ private:
   int roi_top_location = 0;
   int roi_bottom_location = 100;
 
+	int turning_angle_thres_ = 50;
+	bool turning_finish_flag_ = false;
+
 
   //ȭ�� resize
   int width = 960/1.5;   //960
@@ -70,9 +78,12 @@ private:
 
   int GO_BACK_STOP_TIME = 200;     //  ������ 200ȸ frame �� ����
 
-  // stop Point ��ġ   (offset �� Poin2�� ������)
-  int stop_x_offset = 5;
-  int stop_y_offset = 10;
+  int forward_stop_x_offset_ = 5;
+  int forward_stop_y_offset_ = 5;
+  int reverse_stop_x_offset_ = 10;
+  int reverse_stop_y_offset_ = 10;
+  
+  int reverse_detect_offset_ = 100;
 
 
   double avg = 0;
@@ -84,6 +95,7 @@ private:
 
   int fps = 500;
 
+  cv::Mat tmp_frame;
   cv::Mat frame, gray, bi;
   cv::Mat Roi;
   cv::Mat hsv;
@@ -97,15 +109,15 @@ private:
   int r0_p2=0;
   int r0_p3=0;
 
-  int times = 0;
-  int ready = 0;
+  int ready_timer_ = 0;
   bool go_back = false;
   int go_back_stop_time = 0;
 
   cv::Point right_P2;
   cv::Point right_P3;
 
-  cv::Point stop_Point;
+  cv::Point forward_stop_point_;
+	cv::Point reverse_stop_point_;
 
   LaneDetect linedetect;
 

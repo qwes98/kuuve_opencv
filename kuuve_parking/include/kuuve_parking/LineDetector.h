@@ -4,7 +4,10 @@ class LaneDetect
 {
 	int Right0_x, Left0_x;
 
+
 public:
+	
+	int reverse_stop_x_offset_ = 42;
 
 	int find_R0_x(cv::Mat binary_img, int img_height, int *framecount_R , int Right0_x);
 	int find_L0_x(cv::Mat binary_img, int img_height, int *framecount_L , int Left0_x);
