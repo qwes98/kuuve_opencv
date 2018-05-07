@@ -17,7 +17,7 @@ void LinePointDetector::setContiDetectPixel(const int continuous_detect_pixel) {
 bool LinePointDetector::laneIsDiscontinuous(const Mat& binary_img, const int pre_point, const int detect_y_offset)
 {
 	for(int i = 0; i < continuous_detect_pixel_; i++) {
-			if(binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100, pre_point + (i - continuous_detect_pixel_ / 2) == 255))
+			if(binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100, pre_point + (i - continuous_detect_pixel_ / 2)) == 255)
 				return false;
 	}
 
@@ -87,7 +87,7 @@ int LinePointDetector::find_LN_x_out2in(const Mat& binary_img, const int pre_poi
 			if (binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100, i) == 255)
 			{
 				Left_N_x = i;
-				// cout << "왼쪽 불연속점 입니다" << Left_N_x << endl;
+				cout << "out2in 왼쪽 불연속점 입니다" << Left_N_x << endl;
 				break;
 			}
 		}
@@ -123,7 +123,7 @@ int LinePointDetector::find_RN_x_out2in(const Mat& binary_img, const int pre_poi
 			if (binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100, binary_img.cols - i) == 255)
 			{
 				Right_N_x = binary_img.cols - i;
-				// cout << "오른쪽 불연속선 입니다" << Right_N_x << endl;
+				cout << "out2in 오른쪽 불연속선 입니다" << Right_N_x << endl;
 				break;
 			}
 		}
@@ -189,7 +189,7 @@ int LinePointDetector::find_LN_x_in2out(const Mat& binary_img, const int pre_poi
 			if (binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100, i) == 255)
 			{
 				Left_N_x = i;
-				// cout << "왼쪽 불연속점 입니다" << Left_N_x << endl;
+				cout << "in2out 왼쪽 불연속점 입니다" << Left_N_x << endl;
 				break;
 			}
 		}
@@ -225,7 +225,7 @@ int LinePointDetector::find_RN_x_in2out(const Mat& binary_img, const int pre_poi
 			if (binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100, i) == 255)
 			{
 				Right_N_x = i;
-				// cout << "오른쪽 불연속선 입니다" << Right_N_x << endl;
+				cout << "in2out 오른쪽 불연속선 입니다" << Right_N_x << endl;
 				break;
 			}
 		}
