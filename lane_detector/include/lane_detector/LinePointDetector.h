@@ -88,8 +88,7 @@ public:
 
 private:
 //ADDED
-	bool laneIsDiscontiOnIn2Out(const cv::Mat& binary_img, const int pre_point, const int detect_y_offset);
-	bool laneIsDiscontiOnOut2In(const cv::Mat& binary_img, const int pre_point, const int detect_y_offset, const std::string direction);
+	bool laneIsDiscontinuous(const cv::Mat& binary_img, const int pre_point, const int detect_y_offset);
 
 private:
 	bool left_reset_flag_, right_reset_flag_;
