@@ -28,6 +28,8 @@ private:
 #if DEBUG
 	sensor_msgs::ImagePtr getDetectColorImg();
 	sensor_msgs::ImagePtr getDetectFinalBinImg();
+	sensor_msgs::ImagePtr getDetectGrayBinImg();
+	sensor_msgs::ImagePtr getDetectHsvSBinImg();
 	std_msgs::String getPrintlog();
 #endif
 
@@ -45,6 +47,8 @@ private:
 #if DEBUG
 	ros::Publisher true_color_pub_;
 	ros::Publisher final_bin_pub_;
+	ros::Publisher bin_from_gray_pub_;
+	ros::Publisher bin_from_hsv_s_pub_;
 	ros::Publisher printlog_pub_;
 #endif
 	ros::Subscriber image_sub_;

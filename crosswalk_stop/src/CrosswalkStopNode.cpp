@@ -19,6 +19,8 @@ CrosswalkStopNode::CrosswalkStopNode()
 #if DEBUG
 	true_color_pub_ = nh_.advertise<sensor_msgs::Image>("truecolor", 10);
 	final_bin_pub_ = nh_.advertise<sensor_msgs::Image>("final_bin", 10);
+	bin_from_gray_pub_ = nh_.advertise<sensor_msgs::Image>("gray_bin", 10);
+	bin_from_hsv_s_pub_ = nh_.advertise<sensor_msgs::Image>("hsv_s_bin", 10);
 	printlog_pub_ = nh_.advertise<std_msgs::String>("printlog", 10);
 #endif
 
@@ -77,6 +79,8 @@ void CrosswalkStopNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 #if DEBUG
 	true_color_pub_.publish(getDetectColorImg());
 	final_bin_pub_.publish(getDetectFinalBinImg());
+	bin_from_gray_pub_.publish(getDetectGrayBinImg());
+	bin_from_hsv_s_pub_.publish(getDetectHsvSBinImg());
 	printlog_pub_.publish(getPrintlog());
 #endif
 
@@ -99,6 +103,18 @@ sensor_msgs::ImagePtr CrosswalkStopNode::getDetectFinalBinImg()
 	return cv_bridge::CvImage(std_msgs::Header(), "mono8", image).toImageMsg();
 }
 
+sensor_msgs::ImagePtr CrosswalkStopNode::getDetectGrayBinImg()
+{
+	const Mat& image = crosswalkstop_ptr_->getRoiGrayBinImg();
+	return cv_bridge::CvImage(std_msgs::Header(), "mono8", image).toImageMsg();
+}
+
+sensor_msgs::ImagePtr CrosswalkStopNode::getDetectHsvSBinImg()
+{
+	const Mat& image = crosswalkstop_ptr_->getRoiHsvSBinImg();
+	return cv_bridge::CvImage(std_msgs::Header(), "mono8", image).toImageMsg();
+}
+
 std_msgs::String CrosswalkStopNode::getPrintlog()
 {
 	string log;
@@ -108,10 +124,13 @@ std_msgs::String CrosswalkStopNode::getPrintlog()
 	log += "steering angle: " + to_string(crosswalkstop_ptr_->getRealSteerAngle()) + '\n';
 	log += "throttle: " + to_string(throttle_) + '\n';
 	log += "#### Ros Param #### \n";
-	log += "bin_thres: " + to_string(crosswalkstop_ptr_->getGrayBinThres()) + '\n';
+	log += "gray_bin_thres: " + to_string(crosswalkstop_ptr_->getGrayBinThres()) + '\n';
+	log += "hsv_s_bin_thres: " + to_string(crosswalkstop_ptr_->getHsvSBinThres()) + '\n';
 	log += "detect_line_count: " + to_string(crosswalkstop_ptr_->getDetectLineCount()) + '\n';
 	for(int i = 0; i < crosswalkstop_ptr_->getDetectLineCount(); i++)
 		log += "detect_y_offset_" + to_string(i+1) + ": " + to_string(crosswalkstop_ptr_->getDetectYOffset(i)) + '\n';
+	log += "left_detect_offset: " + to_string(crosswalkstop_ptr_->getLeftDetectOffset()) + '\n';
+	log += "right_detect_offset: " + to_string(crosswalkstop_ptr_->getRightDetectOffset()) + '\n';
 	log += "steer_max_angle: " + to_string(crosswalkstop_ptr_->getSteerMaxAngle()) + '\n';
 	log += "yaw_factor: " + to_string(crosswalkstop_ptr_->getYawFactor() * 100) + "% -> " + to_string(crosswalkstop_ptr_->getYawFactor()) + '\n';
 	log += "lateral_factor: " + to_string(crosswalkstop_ptr_->getLateralFactor() * 100) + "% -> " + to_string(crosswalkstop_ptr_->getLateralFactor()) + '\n';
@@ -151,19 +170,25 @@ void CrosswalkStopNode::getRosParamForConstValue(int& width, int& height, int& s
 
 void CrosswalkStopNode::getRosParamForUpdate()
 {
-	int paramArr[5];
-	nh_.getParam("bin_thres", paramArr[0]);
-	nh_.getParam("yaw_factor", paramArr[1]);
-	nh_.getParam("lateral_factor", paramArr[2]);
-	nh_.getParam("roi_top_location", paramArr[3]);
-	nh_.getParam("roi_bottom_location", paramArr[4]);
+	int paramArr[8];
+	nh_.getParam("gray_bin_thres", paramArr[0]);
+	nh_.getParam("hsv_s_bin_thres", paramArr[1]);
+	nh_.getParam("left_detect_offset", paramArr[2]);
+	nh_.getParam("right_detect_offset", paramArr[3]);
+	nh_.getParam("yaw_factor", paramArr[4]);
+	nh_.getParam("lateral_factor", paramArr[5]);
+	nh_.getParam("roi_top_location", paramArr[6]);
+	nh_.getParam("roi_bottom_location", paramArr[7]);
 	nh_.getParam("throttle", throttle_);
 
 	crosswalkstop_ptr_->setGrayBinThres(paramArr[0]);
-	crosswalkstop_ptr_->setYawFactor((double)paramArr[1] / 100);
-	crosswalkstop_ptr_->setLateralFactor((double)paramArr[2] / 100);
-	crosswalkstop_ptr_->setRoiTopLocation(paramArr[3]);
-	crosswalkstop_ptr_->setRoiBottomLocation(paramArr[4]);
+	crosswalkstop_ptr_->setHsvSBinThres(paramArr[1]);
+	crosswalkstop_ptr_->setLeftDetectOffset(paramArr[2]);
+	crosswalkstop_ptr_->setRightDetectOffset(paramArr[3]);
+	crosswalkstop_ptr_->setYawFactor((double)paramArr[4] / 100);
+	crosswalkstop_ptr_->setLateralFactor((double)paramArr[5] / 100);
+	crosswalkstop_ptr_->setRoiTopLocation(paramArr[6]);
+	crosswalkstop_ptr_->setRoiBottomLocation(paramArr[7]);
 
 	int detect_line_count = crosswalkstop_ptr_->getDetectLineCount();
 	for(int i = 0; i < detect_line_count; i++) {
@@ -189,10 +214,13 @@ void CrosswalkStopNode::printData(std_msgs::String control_msg)
 	cout << "steering angle: " << crosswalkstop_ptr_->getRealSteerAngle() << endl;
 	cout << "control msg: " << control_msg.data << endl;
 	cout << "#### Ros Param ####" << endl;
-	cout << "bin_thres: " << crosswalkstop_ptr_->getGrayBinThres() << endl;
+	cout << "gray_bin_thres: " << crosswalkstop_ptr_->getGrayBinThres() << endl;
+	cout << "hsv_s_bin_thres: " << crosswalkstop_ptr_->getHsvSBinThres() << endl;
 	cout << "detect_line_count: " << crosswalkstop_ptr_->getDetectLineCount() << endl;
 	for(int i = 0; i < crosswalkstop_ptr_->getDetectLineCount(); i++)
 		cout << "detect_y_offset_" << i+1 << ": " << crosswalkstop_ptr_->getDetectYOffset(i) << endl;
+	cout << "left_detect_offset: " << crosswalkstop_ptr_->getLeftDetectOffset() << endl;
+	cout << "right_detect_offset: " << crosswalkstop_ptr_->getRightDetectOffset() << endl;
 	cout << "steer_max_angle: " << crosswalkstop_ptr_->getSteerMaxAngle() << endl;
 	cout << "yaw_factor: " << crosswalkstop_ptr_->getYawFactor() * 100 << "% -> " << crosswalkstop_ptr_->getYawFactor() << endl;
 	cout << "lateral_factor: " << crosswalkstop_ptr_->getLateralFactor() * 100 << "% -> " << crosswalkstop_ptr_->getLateralFactor() << endl;
@@ -219,10 +247,13 @@ void CrosswalkStopNode::printData()
 	cout << "steering angle: " << crosswalkstop_ptr_->getRealSteerAngle() << endl;
 	cout << "throttle: " << throttle_ << endl;
 	cout << "#### Ros Param ####" << endl;
-	cout << "bin_thres: " << crosswalkstop_ptr_->getGrayBinThres() << endl;
+	cout << "gray_bin_thres: " << crosswalkstop_ptr_->getGrayBinThres() << endl;
+	cout << "hsv_s_bin_thres: " << crosswalkstop_ptr_->getHsvSBinThres() << endl;
 	cout << "detect_line_count: " << crosswalkstop_ptr_->getDetectLineCount() << endl;
 	for(int i = 0; i < crosswalkstop_ptr_->getDetectLineCount(); i++)
 		cout << "detect_y_offset_" << i+1 << ": " << crosswalkstop_ptr_->getDetectYOffset(i) << endl;
+	cout << "left_detect_offset: " << crosswalkstop_ptr_->getLeftDetectOffset() << endl;
+	cout << "right_detect_offset: " << crosswalkstop_ptr_->getRightDetectOffset() << endl;
 	cout << "steer_max_angle: " << crosswalkstop_ptr_->getSteerMaxAngle() << endl;
 	cout << "yaw_factor: " << crosswalkstop_ptr_->getYawFactor() * 100 << "% -> " << crosswalkstop_ptr_->getYawFactor() << endl;
 	cout << "lateral_factor: " << crosswalkstop_ptr_->getLateralFactor() * 100 << "% -> " << crosswalkstop_ptr_->getLateralFactor() << endl;

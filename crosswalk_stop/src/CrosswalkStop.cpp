@@ -5,7 +5,7 @@ using namespace std;
 using namespace cv;
 
 CrosswalkStop::CrosswalkStop(const int width, const int height, const int steer_max_angle, const int detect_line_count, const double stop_distance, const int stop_time)
-    : OutToInLaneDetector(width, height, steer_max_angle, detect_line_count), STOP_DISTANCE_(stop_distance), STOP_TIME_(stop_time)
+    : InToOutLaneDetector(width, height, steer_max_angle, detect_line_count), STOP_DISTANCE_(stop_distance), STOP_TIME_(stop_time)
 {}
 
 bool CrosswalkStop::detectCrosswalk()

@@ -8,7 +8,8 @@
 		<param name="roi_bottom_location" value="100" />
 
 		<!-- 1. Binary threshold -->
-		<param name="bin_thres" value="150" />
+		<param name="gray_bin_thres" value="150" />
+		<param name="hsv_s_bin_thres" value="150" />
 
 		<!-- 2. Detect line -->
 		<param name="detect_line_count" value="1" />
@@ -17,7 +18,12 @@
 
 		<param name="continuous_detect_pixel" value="30" />
 
-		<!-- 3. Control hardware -->
+		<!-- 3. Detect offset -->
+		<param name="left_detect_offset" value="0" />
+		<param name="right_detect_offset" value="0" />
+
+
+		<!-- 4. Control hardware -->
 		<!-- rc car -->
 		<!--param name="steer_max_angle" value="45" /-->
 		<!--param name="throttle" value="1515" /-->
@@ -28,14 +34,14 @@
 		<param name="throttle" value="7" />
 		<remap from="/crosswalk_stop/ackermann" to="ackermann" />
 
-		<!-- 4. Control factor -->
+		<!-- 5. Control factor -->
 		<!-- yaw_value *= yaw_factor / 100 -->
 		<param name="yaw_factor" value="40" />
 
 		<!-- lateral_value *= lateral_factor / 100 -->
 		<param name="lateral_factor" value="80" />
 
-		<!-- 5. Crosswalk stop -->
+		<!-- 6. Crosswalk stop -->
 		<!-- (stop_distance = 0) == center of frame, top of binary -->
 		<!-- (stop_distance = 100) == bottom of frame, binary -->
 		<!-- stop_distance cannot be set by rosparam command -->
