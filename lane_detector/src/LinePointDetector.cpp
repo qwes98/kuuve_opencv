@@ -1,4 +1,5 @@
 #include "lane_detector/LinePointDetector.h"
+#include "lane_detector/ConditionalCompile.h"
 
 using namespace std;
 using namespace cv;
@@ -87,7 +88,9 @@ int LinePointDetector::find_LN_x_out2in(const Mat& binary_img, const int pre_poi
 			if (binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100, i) == 255)
 			{
 				Left_N_x = i;
+#if DEBUG
 				cout << "out2in 왼쪽 불연속점 입니다" << Left_N_x << endl;
+#endif
 				break;
 			}
 		}
@@ -123,7 +126,9 @@ int LinePointDetector::find_RN_x_out2in(const Mat& binary_img, const int pre_poi
 			if (binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100, binary_img.cols - i) == 255)
 			{
 				Right_N_x = binary_img.cols - i;
+#if DEBUG
 				cout << "out2in 오른쪽 불연속선 입니다" << Right_N_x << endl;
+#endif
 				break;
 			}
 		}
@@ -189,7 +194,9 @@ int LinePointDetector::find_LN_x_in2out(const Mat& binary_img, const int pre_poi
 			if (binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100, i) == 255)
 			{
 				Left_N_x = i;
+#if DEBUG
 				cout << "in2out 왼쪽 불연속점 입니다" << Left_N_x << endl;
+#endif
 				break;
 			}
 		}
@@ -225,7 +232,9 @@ int LinePointDetector::find_RN_x_in2out(const Mat& binary_img, const int pre_poi
 			if (binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100, i) == 255)
 			{
 				Right_N_x = i;
+#if DEBUG
 				cout << "in2out 오른쪽 불연속선 입니다" << Right_N_x << endl;
+#endif
 				break;
 			}
 		}
