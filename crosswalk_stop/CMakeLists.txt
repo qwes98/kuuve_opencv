@@ -13,6 +13,8 @@ find_package(catkin REQUIRED COMPONENTS
 	std_msgs
 	image_transport
 	sensor_msgs
+	actionlib_msgs
+	actionlib
 )
 
 #find_package(OpenCV 3 REQUIRED)
@@ -20,8 +22,16 @@ find_package(catkin REQUIRED COMPONENTS
 #include_directories(${OpenCV_INCLUDE_DIRS})
 
 ## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
+find_package(Boost REQUIRED COMPONENTS system)
 
+add_action_files(
+	DIRECTORY action
+	FILES MissionPlanner.action
+)
+
+generate_messages(
+	DEPENDENCIES actionlib_msgs 
+)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -112,7 +122,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES opencv_test
-  CATKIN_DEPENDS roscpp std_msgs sensor_msgs 
+  CATKIN_DEPENDS roscpp std_msgs sensor_msgs actionlib_msgs
   DEPENDS system_lib
 )
 
@@ -130,6 +140,11 @@ include_directories(
 	${lane_detector_SOURCE_DIR}/include
 )
 
+include_directories(
+	include ${Boost_INCLUDE_DIRS}
+)
+
+
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
 #   src/${PROJECT_NAME}/opencv_test.cpp
@@ -145,7 +160,7 @@ include_directories(
 
 # add_executable(crosswalk_stop src/main.cpp src/LineDetector.cpp)
 add_executable(crosswalk_stop src/main.cpp src/CrosswalkStop.cpp src/CrosswalkStopNode.cpp ${lane_detector_SOURCE_DIR}/src/LinePointDetector.cpp ${lane_detector_SOURCE_DIR}/src/LaneDetector.cpp ${lane_detector_SOURCE_DIR}/src/InToOutLaneDetector.cpp ${lane_detector_SOURCE_DIR}/src/MyException.cpp)
-#add_dependencies(test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(crosswalk_stop ${crosswalk_stop_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(crosswalk_stop
   ${catkin_LIBRARIES}
 )

@@ -7,8 +7,10 @@ using namespace std;
 using namespace cv;
 
 CrosswalkStopNode::CrosswalkStopNode()
+	: as_(nh_, "crosswalk_stop", boost::bind(&CrosswalkStopNode::actionCallback, this, _1), false)
 {
 	nh_ = ros::NodeHandle("~");
+	as_.start();
 	/* if NodeHangle("~"), then (write -> /lane_detector/write)	*/
 #if RC_CAR
 	control_pub_ = nh_.advertise<std_msgs::String>("write", 100);
@@ -44,49 +46,80 @@ CrosswalkStopNode::CrosswalkStopNode()
 	getRosParamForUpdate();
 }
 
+void CrosswalkStopNode::actionCallback(const crosswalk_stop::MissionPlannerGoalConstPtr& goal)
+{
+	cout << "crosswalk_stop actionCallback called!" << endl;
+	mission_start_ = true;
+
+	ros::Rate r(10);
+
+	/*
+	crosswalk_stop::MissionPlannerFeedback feedback;
+	as_.publishFeedback(feedback);
+	*/
+
+	while(ros::ok()) {
+		if(mission_cleared_) {
+			crosswalk_stop::MissionPlannerResult result;
+			as_.setSucceeded(result);
+			break;
+		}
+		r.sleep();	// sleep 0.1 sec
+	}
+}
+
 void CrosswalkStopNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 {
-	Mat raw_img;
-	try{
-		raw_img = parseRawimg(image);
-	} catch(const cv_bridge::Exception& e) {
-		ROS_ERROR("cv_bridge exception: %s", e.what());
-		return ;
-	} catch(const std::runtime_error& e) {
-		cerr << e.what() << endl;
-	}
+	if(mission_start_)
+	{
+	
+		Mat raw_img;
+		try{
+			raw_img = parseRawimg(image);
+		} catch(const cv_bridge::Exception& e) {
+			ROS_ERROR("cv_bridge exception: %s", e.what());
+			return ;
+		} catch(const std::runtime_error& e) {
+			cerr << e.what() << endl;
+		}
 
-	getRosParamForUpdate();
+		getRosParamForUpdate();
 
-	int steer_control_value = crosswalkstop_ptr_->laneDetecting(raw_img);
+		int steer_control_value = crosswalkstop_ptr_->laneDetecting(raw_img);
 
-  if(!cross_detected_ && crosswalkstop_ptr_->detectCrosswalk()) {
-		// TODO: have to modify for braking
-		throttle_ = 0;
-		cross_detected_ = true;
-	}
+	  if(!cross_detected_ && crosswalkstop_ptr_->detectCrosswalk()) {
+			// TODO: have to modify for braking
+			throttle_ = 0;
+			cross_detected_ = true;
+		}
 
 
 #if	RC_CAR
-  std_msgs::String control_msg = makeControlMsg(steer_control_value);
-	printData(control_msg);
+	  std_msgs::String control_msg = makeControlMsg(steer_control_value);
+		printData(control_msg);
 #elif	SCALE_PLATFORM
-	ackermann_msgs::AckermannDriveStamped control_msg = makeControlMsg();
-	printData();
+		ackermann_msgs::AckermannDriveStamped control_msg = makeControlMsg();
+		printData();
 #endif
-	control_pub_.publish(control_msg);
+		control_pub_.publish(control_msg);
 
 #if DEBUG
-	true_color_pub_.publish(getDetectColorImg());
-	final_bin_pub_.publish(getDetectFinalBinImg());
-	bin_from_gray_pub_.publish(getDetectGrayBinImg());
-	bin_from_hsv_s_pub_.publish(getDetectHsvSBinImg());
-	printlog_pub_.publish(getPrintlog());
+		true_color_pub_.publish(getDetectColorImg());
+		final_bin_pub_.publish(getDetectFinalBinImg());
+		bin_from_gray_pub_.publish(getDetectGrayBinImg());
+		bin_from_hsv_s_pub_.publish(getDetectHsvSBinImg());
+		printlog_pub_.publish(getPrintlog());
 #endif
 
-	if(cross_detected_ && !mission_cleared_) {
-		ros::Duration(crosswalkstop_ptr_->getStopTime()).sleep();	// sleep for 3 seconds
-		mission_cleared_ = true;
+		if(cross_detected_ && !mission_cleared_) {
+			ros::Duration(crosswalkstop_ptr_->getStopTime()).sleep();	// sleep for 3 seconds
+			mission_cleared_ = true;
+
+			/*
+			crosswalk_stop::MissionPlannerResult result;
+			as_.setSucceeded(result);
+			*/
+		}
 	}
 }
 

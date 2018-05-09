@@ -8,14 +8,18 @@
 #include <sensor_msgs/image_encodings.h>
 #include <ackermann_msgs/AckermannDriveStamped.h>
 #include <signal.h>
+#include <actionlib/server/simple_action_server.h>
 #include <memory>
 #include "crosswalk_stop/CrosswalkStop.h"
 #include "lane_detector/ConditionalCompile.h"
+#include "crosswalk_stop/MissionPlannerAction.h"
 
 class CrosswalkStopNode
 {
 public:
   CrosswalkStopNode();
+
+	void actionCallback(const crosswalk_stop::MissionPlannerGoalConstPtr& goal);
 
 	void imageCallback(const sensor_msgs::ImageConstPtr& image);
 
@@ -53,10 +57,14 @@ private:
 #endif
 	ros::Subscriber image_sub_;
 
+	actionlib::SimpleActionServer<crosswalk_stop::MissionPlannerAction> as_;
+
 	int throttle_ = 0;
 
   bool cross_detected_ = false;
   bool mission_cleared_ = false;
+
+	bool mission_start_ = false;	// for action
 
   std::unique_ptr<CrosswalkStop> crosswalkstop_ptr_;
 };
