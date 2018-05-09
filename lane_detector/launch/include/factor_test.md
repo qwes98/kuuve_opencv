@@ -5,3 +5,6 @@
 * `60/50/80/16` : too bad -> sol: detect_y_offset을 작게해야 할듯(더 멀리봐야)
 * `45/40/80/16` : too bad
 * `25/40/80/16` : good 
+
+## 05.09 test(학교, 햇빛 강함)
+* gray_bin_thres : 220
