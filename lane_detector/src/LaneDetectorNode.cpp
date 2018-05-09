@@ -7,8 +7,10 @@ using namespace std;
 using namespace cv;
 
 LaneDetectorNode::LaneDetectorNode()
+	: as_(nh_, "lane_detector", boost::bind(&LaneDetectorNode::actionCallback, this, _1), false)
 {
 	nh_ = ros::NodeHandle("~");
+	as_.start();
 	/* if NodeHangle("~"), then (write -> /lane_detector/write)	*/
 #if RC_CAR
 	control_pub_ = nh_.advertise<std_msgs::String>("write", 100);
@@ -42,39 +44,62 @@ LaneDetectorNode::LaneDetectorNode()
 	getRosParamForUpdate();
 }
 
+void LaneDetectorNode::actionCallback(const lane_detector::MissionPlannerGoalConstPtr& goal)
+{
+	cout << "lane_detector actionCallback called!" << endl;
+	
+	if(goal->mission == 0)		// stop lane detecting
+		mission_start_ = false;
+	else if(goal->mission == 1)	// start lane detecting
+		mission_start_ = true;
+	else
+		throw runtime_error("goal param value have to be either 0 or 1");
+
+	/*
+	lane_detector::MissionPlannerFeedback feedback;
+	as_.publishFeedback(feedback);
+	*/
+
+	lane_detector::MissionPlannerResult result;
+	as_.setSucceeded(result);
+
+}
+
 void LaneDetectorNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 {
-	Mat raw_img;
-	try{
-		raw_img = parseRawimg(image);
-	} catch(const cv_bridge::Exception& e) {
-		ROS_ERROR("cv_bridge exception: %s", e.what());
-		return ;
-	} catch(const std::runtime_error& e) {
-		cerr << e.what() << endl;
-	}
+	if(mission_start_) {
+		Mat raw_img;
+		try{
+			raw_img = parseRawimg(image);
+		} catch(const cv_bridge::Exception& e) {
+			ROS_ERROR("cv_bridge exception: %s", e.what());
+			return ;
+		} catch(const std::runtime_error& e) {
+			cerr << e.what() << endl;
+		}
 
-    getRosParamForUpdate();
+	    getRosParamForUpdate();
 
-    int steer_control_value = lanedetector_ptr_->laneDetecting(raw_img);
+	    int steer_control_value = lanedetector_ptr_->laneDetecting(raw_img);
 
 #if	RC_CAR
-	std_msgs::String control_msg = makeControlMsg(steer_control_value);
-	printData(control_msg);
+		std_msgs::String control_msg = makeControlMsg(steer_control_value);
+		printData(control_msg);
 #elif	SCALE_PLATFORM
-	ackermann_msgs::AckermannDriveStamped control_msg = makeControlMsg();
-	printData();
+		ackermann_msgs::AckermannDriveStamped control_msg = makeControlMsg();
+		printData();
 #endif
 
-	control_pub_.publish(control_msg);
+		control_pub_.publish(control_msg);
 
 #if DEBUG
-	true_color_pub_.publish(getDetectColorImg());
-	final_bin_pub_.publish(getDetectFinalBinImg());
-	bin_from_gray_pub_.publish(getDetectGrayBinImg());
-	bin_from_hsv_s_pub_.publish(getDetectHsvSBinImg());
-	printlog_pub_.publish(getPrintlog());
+		true_color_pub_.publish(getDetectColorImg());
+		final_bin_pub_.publish(getDetectFinalBinImg());
+		bin_from_gray_pub_.publish(getDetectGrayBinImg());
+		bin_from_hsv_s_pub_.publish(getDetectHsvSBinImg());
+		printlog_pub_.publish(getPrintlog());
 #endif
+	}
 }
 
 #if DEBUG

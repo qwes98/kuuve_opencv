@@ -13,6 +13,8 @@ find_package(catkin REQUIRED COMPONENTS
 	std_msgs
 	image_transport
 	sensor_msgs
+	actionlib_msgs
+	actionlib
 )
 
 #find_package(OpenCV 3 REQUIRED)
@@ -20,8 +22,16 @@ find_package(catkin REQUIRED COMPONENTS
 #include_directories(${OpenCV_INCLUDE_DIRS})
 
 ## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
+find_package(Boost REQUIRED COMPONENTS system)
 
+add_action_files(
+	DIRECTORY action
+	FILES MissionPlanner.action
+)
+
+generate_messages(
+	DEPENDENCIES actionlib_msgs
+)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -111,7 +121,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES opencv_test
-  CATKIN_DEPENDS roscpp std_msgs sensor_msgs
+  CATKIN_DEPENDS roscpp std_msgs sensor_msgs actionlib_msgs
   DEPENDS system_lib
 )
 
@@ -129,6 +139,10 @@ include_directories(
 	${catkin_INCLUDE_DIRS} ./include
 )
 
+include_directories(
+	include ${Boost_INCLUDE_DIRS}
+)
+
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
 #   src/${PROJECT_NAME}/opencv_test.cpp
@@ -142,7 +156,7 @@ include_directories(
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(lane_detector src/main.cpp src/LinePointDetector.cpp src/LaneDetector.cpp src/InToOutLaneDetector.cpp src/LaneDetectorNode.cpp src/MyException.cpp)
-#add_dependencies(test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(lane_detector ${lane_detector_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(lane_detector
   ${catkin_LIBRARIES}
 )

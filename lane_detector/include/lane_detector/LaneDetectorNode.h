@@ -8,14 +8,18 @@
 #include <sensor_msgs/image_encodings.h>
 #include <ackermann_msgs/AckermannDriveStamped.h>
 #include <signal.h>
+#include <actionlib/server/simple_action_server.h>
 #include <memory>
 #include "lane_detector/InToOutLaneDetector.h"
 #include "lane_detector/ConditionalCompile.h"
+#include "lane_detector/MissionPlannerAction.h"
 
 class LaneDetectorNode
 {
 public:
 	LaneDetectorNode();
+
+	void actionCallback(const lane_detector::MissionPlannerGoalConstPtr& goal);
 
 	void imageCallback(const sensor_msgs::ImageConstPtr& image);
 
@@ -54,7 +58,11 @@ private:
 #endif
 	ros::Subscriber image_sub_;
 
+	actionlib::SimpleActionServer<lane_detector::MissionPlannerAction> as_;
+
 	int throttle_ = 0;
+
+	bool mission_start_ = false;	// for action
 
 	std::unique_ptr<InToOutLaneDetector> lanedetector_ptr_;
 };
