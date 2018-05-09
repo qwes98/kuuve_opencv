@@ -47,11 +47,14 @@ LaneDetectorNode::LaneDetectorNode()
 void LaneDetectorNode::actionCallback(const lane_detector::MissionPlannerGoalConstPtr& goal)
 {
 	cout << "lane_detector actionCallback called!" << endl;
-	
-	if(goal->mission == 0)		// stop lane detecting
+
+	if(goal->mission == 0) {		// stop lane detecting
 		mission_start_ = false;
-	else if(goal->mission == 1)	// start lane detecting
+	}
+	else if(goal->mission == 1) {	// start lane detecting
 		mission_start_ = true;
+		lane_detector_on_count_++;
+	}
 	else
 		throw runtime_error("goal param value have to be either 0 or 1");
 
@@ -134,7 +137,8 @@ std_msgs::String LaneDetectorNode::getPrintlog()
 	log += (string)"it took : " + to_string(lanedetector_ptr_->getOnceDetectTime()) + "ms, " + "avg: " + to_string(lanedetector_ptr_->getAvgDetectTime()) + " fps : " + to_string(1000 / lanedetector_ptr_->getAvgDetectTime()) + '\n';
 	log += "#### Control #### \n";
 	log += "steering angle: " + to_string(lanedetector_ptr_->getRealSteerAngle()) + '\n';
-	log += "throttle: " + to_string(throttle_) + '\n';
+	log += "mission_throttle: " + to_string(mission_throttle_) + '\n';
+	log += "curve_driving_throttle: " + to_string(curve_driving_throttle_) + '\n';
 	log += "#### Ros Param #### \n";
 	log += "gray_bin_thres: " + to_string(lanedetector_ptr_->getGrayBinThres()) + '\n';
 	log += "hsv_s_bin_thres: " + to_string(lanedetector_ptr_->getHsvSBinThres()) + '\n';
@@ -188,7 +192,10 @@ void LaneDetectorNode::getRosParamForUpdate()
 	nh_.getParam("roi_top_location", paramArr[6]);
 	nh_.getParam("roi_bottom_location", paramArr[7]);
 	nh_.getParam("continuous_detect_pixel", paramArr[8]);
-	nh_.getParam("throttle", throttle_);
+	nh_.getParam("mission_throttle", mission_throttle_);
+	nh_.getParam("curve_driving_throttle", curve_driving_throttle_);
+	nh_.getParam("on_count_before_first_driving", on_count_before_first_driving_);
+	nh_.getParam("on_count_between_first_second_driving", on_count_between_first_second_driving_);
 
 	lanedetector_ptr_->setGrayBinThres(paramArr[0]);
 	lanedetector_ptr_->setHsvSBinThres(paramArr[1]);
@@ -243,7 +250,11 @@ ackermann_msgs::AckermannDriveStamped LaneDetectorNode::makeControlMsg()
 	ackermann_msgs::AckermannDriveStamped control_msg;
 	//control_msg.drive.steering_angle = steer_control_value;
 	control_msg.drive.steering_angle = lanedetector_ptr_->getRealSteerAngle();
-	control_msg.drive.speed = throttle_;
+	if(lane_detector_on_count_ == (on_count_before_first_driving_ + 1) || lane_detector_on_count_ == (on_count_before_first_driving_ + 1) + (on_count_between_first_second_driving_ + 1))
+		control_msg.drive.speed = curve_driving_throttle_;
+	else
+		control_msg.drive.speed = mission_throttle_;
+
 	return control_msg;
 }
 
@@ -253,7 +264,8 @@ void LaneDetectorNode::printData()
 	cout << "it took : " << lanedetector_ptr_->getOnceDetectTime() << "ms, " << "avg: " << lanedetector_ptr_->getAvgDetectTime() << " fps : " << 1000 / lanedetector_ptr_->getAvgDetectTime() << endl;
 	cout << "#### Control ####" << endl;
 	cout << "steering angle: " << lanedetector_ptr_->getRealSteerAngle() << endl;
-	cout << "throttle: " << throttle_ << endl;
+	cout << "mission_throttle: " << mission_throttle_ << endl;
+	cout << "curve_driving_throttle: " << curve_driving_throttle_ << endl;
 	cout << "#### Ros Param ####" << endl;
 	cout << "gray_bin_thres: " << lanedetector_ptr_->getGrayBinThres() << endl;
 	cout << "hsv_s_bin_thres: " << lanedetector_ptr_->getHsvSBinThres() << endl;

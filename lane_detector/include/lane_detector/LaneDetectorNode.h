@@ -60,7 +60,13 @@ private:
 
 	actionlib::SimpleActionServer<lane_detector::MissionPlannerAction> as_;
 
-	int throttle_ = 0;
+	int mission_throttle_ = 0;
+	int curve_driving_throttle_ = 0;
+
+	int on_count_before_first_driving_ = 2;		// 첫번째 커브 주행 전까지 차선 인식 켜지는 횟수
+	int on_count_between_first_second_driving_ = 2;	// 첫번째 커브 주행 이후, 두번째 커브 전까지 차선 인식 켜지는 횟수
+
+	int lane_detector_on_count_ = 0;
 
 	bool mission_start_ = false;	// for action
 

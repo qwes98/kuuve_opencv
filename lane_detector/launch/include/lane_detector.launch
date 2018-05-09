@@ -30,7 +30,8 @@
 
 		<!-- scale platform -->
 		<param name="steer_max_angle" value="26" />
-		<param name="throttle" value="7" />
+		<param name="mission_throttle" value="7" />
+		<param name="curve_driving_throttle" value="7" />
 		<remap from="/lane_detector/ackermann" to="ackermann" />
 
 		<!-- 5. Control factor -->
@@ -39,5 +40,11 @@
 
 		<!-- lateral_error *= lateral_factor/ 100 -->
 		<param name="lateral_factor" value="80" />
+
+		<!-- 6. throttle choose -->
+		<!-- 첫번째 커브 주행 전까지 차선 인식 켜지는 횟수 -->
+		<param name="on_count_before_first_driving" value="2" />
+		<!-- 첫번째 커브 주행 이후, 두번째 커브 전까지 차선 인식 켜지는 횟수 -->
+		<param name="on_count_between_first_second_driving" value="2" />
 	</node>
 </launch>
