@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<launch>
+  <node pkg="action_with_smach" name="state_machine_simple" type="state_machine_simple.py" output="screen"/>
+  <node pkg="keyboard" name="keyboard" type="keyboard"/>
+  <node pkg="smach_viewer" name="smach_viewer" type="smach_viewer.py" output="screen"/>
+</launch>

@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<launch>
+  <node pkg="keyboard" name="keyboard" type="keyboard"/>
+  <node pkg="action_with_smach" name="fibonacci_client" type="action_client_sub_key.py" output="screen"/>
+  <node pkg="action_with_smach" name="action_server1" type="action_server1.py" output="screen"/>
+  <node pkg="action_with_smach" name="action_server2" type="action_server2.py" output="screen"/>
+</launch>

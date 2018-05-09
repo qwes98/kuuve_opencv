@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<launch>
+  <node pkg="action_with_smach" name="fibonacci_client" type="action_client.py" output="screen"/>
+  <node pkg="action_with_smach" name="action_server1" type="action_server1.py" output="screen"/>
+</launch>

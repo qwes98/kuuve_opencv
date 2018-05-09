@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<launch>
+  <node pkg="action_with_smach" name="action_clients" type="action_clients_test.py" output="screen"/>
+  <node pkg="action_with_smach" name="action_server1" type="action_server1.py" output="screen"/>
+  <node pkg="action_with_smach" name="action_server2" type="action_server2.py" output="screen"/>
+</launch>
