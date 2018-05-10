@@ -26,7 +26,7 @@
 		<param name="throttle" value="3" />
 
 		<!-- param name="go_back_stop_time" value="200" /-->
-		<param name="turning_angle_thres" value="50" />
+		<param name="turning_angle_thres" value="20" />
 
 		<!-- 0 is a top and 100 is a bottom -->
 		<param name="roi_top_location" value="20" />
