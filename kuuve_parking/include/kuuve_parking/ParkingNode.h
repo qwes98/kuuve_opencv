@@ -104,8 +104,6 @@ private:
 	int ready2 = 0;
 	int READY = 10;
 	int READY2 = 10;
-	bool turning = false;
-	bool turning2 = false;
 	int next_room_time = 0;
 	int NEXT_ROOM_TIME = 30;
 	int framecount_new_2_L = 0;
@@ -114,6 +112,11 @@ private:
 	int framecount_new_3_R = 0;
 	int OFFSET = 40; // next_room_offset
 	cv::Point obstract;
+
+	int gaussian_param = 1;
+
+	bool during_reverse_1 = false;
+	bool during_reverse_2 = false;
 /////////////////////////////////////////////
 
 
@@ -137,10 +140,10 @@ private:
   int framecount2_R = 0;
   int framecount3_R = 0;
 
-  int r0_p2=0;
-  int r0_p3=0;
-	int l0_p2=0;
-	int l0_p3=0;
+  int r0_p2;
+  int r0_p3;
+int l0_p2=15;
+int l0_p3=15;
 
   int ready_timer_ = 0;
   int go_back_stop_time = 0;

@@ -4,7 +4,7 @@
 		<param name="resize_height" value="540" />
 
 		<param name="steer_max_angle" value="26" />
-		<param name="gray_bin_thres" value="200" />
+		<param name="gray_bin_thres" value="70" />
 		<param name="hsv_s_bin_thres" value="150" />
 
 		<!-- pixel value -->
@@ -33,5 +33,25 @@
 		<param name="roi_bottom_location" value="100" />
 
 		<remap from="kuuve_parking/ackermann" to="ackermann" />
+
+		<!-- obstract -->
+		<param name="obstract_detect_x" value="80" />
+		<param name="obstract_detect_y" value="80" />
+
+		<param name="object_detect_time" value="10" />
+
+		<param name="steady_state" value="50" />
+
+		<param name="yaw_error_for_stop_point" value="7" />
+
+		<param name="ready1" value="10" />
+		<param name="ready2" value="10" />
+
+		<param name="next_room_time" value="30" />
+
+		<param name="next_room_offset" value="40" />
+
+		<param name="gaussian_param" value="1" />
+
 	</node>
 </launch>
