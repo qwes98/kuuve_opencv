@@ -151,13 +151,13 @@ int LaneDetector::calculateSteerValue(const int center_steer_control_value, cons
 
 	int tmp_control_value = yaw_error_ * yaw_factor_ + lateral_error_ * lateral_factor_;
 
-  if(tmp_control_value < STEER_MAX_ANGLE_ && tmp_control_value > (-1) * STEER_MAX_ANGLE_)
+  if(yaw_error_ * yaw_factor_ < STEER_MAX_ANGLE_ && yaw_error_ * yaw_factor_ > (-1) * STEER_MAX_ANGLE_)
   		steer_control_value = static_cast<int>(center_steer_control_value + steer_offset / STEER_MAX_ANGLE_ * (yaw_error_ * yaw_factor_) + lateral_error_ * lateral_factor_);
-  	else if(tmp_control_value >= STEER_MAX_ANGLE_) {
+  	else if(yaw_error_ * yaw_factor_ >= STEER_MAX_ANGLE_) {
   		steer_control_value = center_steer_control_value + steer_offset;
   		yaw_error_ = STEER_MAX_ANGLE_ / yaw_factor_;		// for print angle on console
   	}
-  	else if(tmp_control_value <= (-1) * STEER_MAX_ANGLE_) {
+  	else if(yaw_error_ * yaw_factor_ <= (-1) * STEER_MAX_ANGLE_) {
   		steer_control_value = center_steer_control_value - steer_offset;
   		yaw_error_ = (-1) * STEER_MAX_ANGLE_ / yaw_factor_;
   }
