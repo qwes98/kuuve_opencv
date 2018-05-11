@@ -8,9 +8,9 @@ ParkingNode::ParkingNode()
 {
 	nh_ = ros::NodeHandle("~");
 
-	control_pub = nh_.advertise<ackermann_msgs::AckermannDriveStamped>("ackermann", 100);
+	control_pub = nh_.advertise<ackermann_msgs::AckermannDriveStamped>("ackermann", 10);
 
-	image_sub = nh_.subscribe("/usb_cam/image_raw", 100, &ParkingNode::imageCallback, this);
+	image_sub = nh_.subscribe("/usb_cam/image_raw", 1, &ParkingNode::imageCallback, this);
 
 	getRosParamForInitiation();
 

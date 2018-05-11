@@ -13,9 +13,9 @@ LaneDetectorNode::LaneDetectorNode()
 	as_.start();
 	/* if NodeHangle("~"), then (write -> /lane_detector/write)	*/
 #if RC_CAR
-	control_pub_ = nh_.advertise<std_msgs::String>("write", 100);
+	control_pub_ = nh_.advertise<std_msgs::String>("write", 10);
 #elif	SCALE_PLATFORM
-	control_pub_ = nh_.advertise<ackermann_msgs::AckermannDriveStamped>("ackermann", 100);
+	control_pub_ = nh_.advertise<ackermann_msgs::AckermannDriveStamped>("ackermann", 10);
 #endif
 
 #if DEBUG
@@ -27,9 +27,9 @@ LaneDetectorNode::LaneDetectorNode()
 #endif
 
 #if WEBCAM
-	image_sub_ = nh_.subscribe("/usb_cam/image_raw", 100, &LaneDetectorNode::imageCallback, this);
+	image_sub_ = nh_.subscribe("/usb_cam/image_raw", 1, &LaneDetectorNode::imageCallback, this);
 #elif	PROSILICA_GT_CAM
-	image_sub_ = nh_.subscribe("/camera/image_raw", 100, &LaneDetectorNode::imageCallback, this);
+	image_sub_ = nh_.subscribe("/camera/image_raw", 1, &LaneDetectorNode::imageCallback, this);
 #endif
 
 	int resize_width = 0;
