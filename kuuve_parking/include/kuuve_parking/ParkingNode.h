@@ -1,8 +1,8 @@
 #ifndef PARKINGNODE_H
 #define PARKINGNODE_H
 
-#include <ros/ros.h>
-#include <std_msgs/String.h>
+#include <ros/ros.h> 
+#include <std_msgs/String.h> 
 #include <cv_bridge/cv_bridge.h>
 #include <image_transport/image_transport.h>
 #include <sensor_msgs/image_encodings.h>
@@ -50,6 +50,8 @@ private:
   ackermann_msgs::AckermannDriveStamped control_msg;
 
   int throttle = 4;
+  int throttle_start_offset = 3;
+  int throttle_start_time_offset = 3;
   int steer_value;
 
   int STEER_MAX_ANGLE_ = 26;
@@ -81,8 +83,8 @@ private:
 
   int forward_stop_x_offset_ = 5;
   int forward_stop_y_offset_ = 5;
-  int reverse_stop_x_offset_ = 10;
-  int reverse_stop_y_offset_ = 10;
+  //int reverse_stop_x_offset_ = 10;
+  //int reverse_stop_y_offset_ = 10;
 
   int reverse_detect_offset_ = 100;
 ///////////////////////////////////////////////////
@@ -102,8 +104,12 @@ private:
 	int times2 = 0;
 	int ready = 0;
 	int ready2 = 0;
+	int ready3 = 0;
+	int ready4 = 0;
 	int READY = 10;
 	int READY2 = 10;
+	int READY3 = 10;
+	int READY4 = 10;
 	int next_room_time = 0;
 	int NEXT_ROOM_TIME = 30;
 	int framecount_new_2_L = 0;
@@ -117,8 +123,18 @@ private:
 
 	bool during_reverse_1 = false;
 	bool during_reverse_2 = false;
+
+	bool out_of_room2 = false;
+
+	int framecount_new_new_2_L = 0;
+	int framecount_new_new_3_L = 0;
+	int framecount_new_new_2_R = 0;
+	int framecount_new_new_3_R = 0;
 /////////////////////////////////////////////
 
+	int forward_max_turning_angle_thres = 5;
+	int reverse_max_turning_angle_thres = 5;
+	int reverse_stop_angle_thres = 10;
 
   double avg = 0;
   double sum_ = 0;
@@ -155,7 +171,7 @@ int l0_p3=15;
   cv::Point right_P3;
 
   cv::Point forward_stop_point_;
-	cv::Point reverse_stop_point_;
+	//cv::Point reverse_stop_point_;
 
   LaneDetect linedetect;
 

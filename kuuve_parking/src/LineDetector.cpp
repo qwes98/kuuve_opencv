@@ -20,6 +20,22 @@ int LaneDetect::find_L0_x(Mat binary_img, int img_height, int *framecount_L , in
 	return l0_x;
 }
 
+int LaneDetect::find_L0_x2(Mat binary_img, int img_height , int *framecount_L ,int Left0_x)
+{
+	int l0_x = Left0_x;
+
+	for (int i = 15; i < binary_img.cols-14; i++)
+	{
+		if (binary_img.at<uchar>(img_height , i) == 255)
+		{
+			l0_x = i;
+			break;
+		}
+	}
+	*framecount_L = *framecount_L + 1;
+	return l0_x;
+}
+
 int LaneDetect::find_R0_x(Mat binary_img, int img_height , int *framecount_R ,int Left0_x)
 {
 	int r0_x = Left0_x;
@@ -58,8 +74,6 @@ int LaneDetect::find_LN_x(Mat binary_img, int Left0_x, int img_height , int THRE
 {
 	int Left_N_x = Left0_x;
 
-	for (int i = 10; i < binary_img.cols-1; i++)
-	{
 		// �ҿ��� �� �̶���
 		if (!(binary_img.at<uchar>(binary_img.rows / 2 + img_height, Left0_x) == 255)
 			&& !(binary_img.at<uchar>(binary_img.rows / 2 + img_height - 1, Left0_x ) == 255)
@@ -68,19 +82,19 @@ int LaneDetect::find_LN_x(Mat binary_img, int Left0_x, int img_height , int THRE
 		{
 			for (int i = 10; i < binary_img.cols; i++)
 			{
-				if (binary_img.at<uchar>(binary_img.rows / 2 + img_height, i) == 255)
+				if (binary_img.at<uchar>(img_height, i) == 255)
 				{
 					Left_N_x = i;
-					//cout << "���� �ҿ����� �Դϴ�. " << Left_N_x << endl;
 					break;
 				}
 			}
-			break;
 
 		}
 		else // ���Ӽ� �̶���
 		{
-			if (binary_img.at<uchar>(binary_img.rows / 2 + img_height, i) == 255)
+			for (int i = 10; i < binary_img.cols-1; i++)
+			{
+			if (binary_img.at<uchar>(img_height, i) == 255)
 			{
 
 				if ((i > Left0_x + THRESHOLD) || (i < Left0_x - THRESHOLD))	continue;

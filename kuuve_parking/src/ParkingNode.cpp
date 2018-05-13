@@ -8,7 +8,7 @@ ParkingNode::ParkingNode()
 {
 	nh_ = ros::NodeHandle("~");
 
-	control_pub = nh_.advertise<ackermann_msgs::AckermannDriveStamped>("ackermann", 100);
+	control_pub = nh_.advertise<ackermann_msgs::AckermannDriveStamped>("ackermann", 10);
 
 	image_sub = nh_.subscribe("/usb_cam/image_raw", 1, &ParkingNode::imageCallback, this);
 
@@ -34,8 +34,13 @@ void ParkingNode::getRosParamForInitiation()
 	nh_.getParam("yaw_error_for_stop_point", YAW_ERROR);
 	nh_.getParam("ready1", READY);
 	nh_.getParam("ready2", READY2);
+	nh_.getParam("ready3", READY3);
+	nh_.getParam("ready4", READY4);
 	nh_.getParam("next_room_time", NEXT_ROOM_TIME);
 	nh_.getParam("next_room_offset", OFFSET);
+	nh_.getParam("forward_max_turning_angle_thres", forward_max_turning_angle_thres);
+	nh_.getParam("reverse_max_turning_angle_thres", reverse_max_turning_angle_thres);
+	nh_.getParam("reverse_stop_angle_thres", reverse_stop_angle_thres);
 }
 
 void ParkingNode::getRosParamForUpdate()
@@ -43,6 +48,8 @@ void ParkingNode::getRosParamForUpdate()
 	nh_.getParam("gray_bin_thres", gray_bin_thres);
 	nh_.getParam("hsv_s_bin_thres", hsv_s_bin_thres);
 	nh_.getParam("throttle", throttle);
+	nh_.getParam("throttle_start_offset", throttle_start_offset);
+	nh_.getParam("throttle_start_time_offset", throttle_start_time_offset);
 	nh_.getParam("go_back_stop_time", GO_BACK_STOP_TIME);
 	nh_.getParam("roi_top_location", roi_top_location);
 	nh_.getParam("roi_bottom_location", roi_bottom_location);
@@ -50,8 +57,8 @@ void ParkingNode::getRosParamForUpdate()
 	nh_.getParam("line_length", LINE_LENGTH);
 	nh_.getParam("forward_stop_x_offset", forward_stop_x_offset_);
 	nh_.getParam("forward_stop_y_offset", forward_stop_y_offset_);
-	nh_.getParam("reverse_stop_x_offset_", reverse_stop_x_offset_);
-	nh_.getParam("reverse_stop_y_offset_", reverse_stop_y_offset_);
+	// nh_.getParam("reverse_stop_x_offset_", reverse_stop_x_offset_);
+	// nh_.getParam("reverse_stop_y_offset_", reverse_stop_y_offset_);
 	nh_.getParam("turning_angle_thres", turning_angle_thres_);
 	nh_.getParam("reverse_detect_offset", reverse_detect_offset_);
 	nh_.getParam("gaussian_param", gaussian_param);
@@ -64,7 +71,7 @@ void ParkingNode::getRosParamForUpdate()
 	nh_.getParam("lateral_factor", lateral_factor_tmp);
 	lateral_factor = (double)lateral_factor_tmp / 100;
 
-	linedetect.reverse_stop_x_offset_ = reverse_stop_x_offset_;
+	// linedetect.reverse_stop_x_offset_ = reverse_stop_x_offset_;
 
 
 }
@@ -73,7 +80,7 @@ int ParkingNode::calculateSteerValue(const int center_steer_control_value, const
 {
 	int steer_control_value = 0;// for parsing double value to int
 	const int steer_offset = max_steer_control_value - center_steer_control_value;  // center ~ max
-	cout << "steer_offset: " << steer_offset << endl;
+	// cout << "steer_offset: " << steer_offset << endl;
 
 	int control_value = yaw_error * yaw_factor + lateral_error * lateral_factor;
  if(control_value < STEER_MAX_ANGLE_ && control_value > (-1) * STEER_MAX_ANGLE_) {
@@ -154,7 +161,8 @@ void ParkingNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 	hsv_s = hsv_planes[1];
 	// 사물 디택트
 
-	GaussianBlur(gray, gray, Size(0,0), gaussian_param);
+	// GaussianBlur(gray, gray, Size(0,0), gaussian_param);
+	medianBlur(gray, gray, 3);
 
 	double bb = threshold(gray, b, gray_bin_thres, 255, THRESH_BINARY);   //110
 	double aa = threshold(hsv_s, a, hsv_s_bin_thres, 255, THRESH_BINARY);
@@ -232,6 +240,8 @@ if(ready_go_back && yaw_error < YAW_ERROR)
 			times = times + 1;
 			steer_value = 0;
 			makeControlMsg(steer_value,0);
+			ros::Duration(3).sleep();
+
 			go_back = true;
 			cout << "(1번 주차공간) times = " << times << "   조향각 : " << yaw_error << endl;
 			////////// 여기에 후진 명령 내려야 한다.
@@ -246,8 +256,18 @@ if(go_back == false)
 	int dx = right_P2.x - right_P3.x;
 	yaw_error = atan2(dx, dy) * 180  /CV_PI;
 	lateral_error = right_P2.x;
-	steer_value = calculateSteerValue(0,26);
-	makeControlMsg(steer_value, throttle);
+	cout << "!!!!!!!!!! yaw_error: " << yaw_error << " max_turing:  " << forward_max_turning_angle_thres << endl;
+	if(yaw_error > forward_max_turning_angle_thres && steady_state > STEADY_STATE) {
+		makeControlMsg(26, throttle);
+	}
+	else if(steady_state < STEADY_STATE + throttle_start_time_offset) {
+		steer_value = calculateSteerValue(0,26);
+		makeControlMsg(steer_value, throttle + throttle_start_offset);
+	}
+	else {
+		steer_value = calculateSteerValue(0,26);
+		makeControlMsg(steer_value, throttle);
+	}
 	cout << "(1번 주차공간) 전진 ready : " << ready << "    조향각 : " << yaw_error << endl;
 
 }
@@ -260,29 +280,29 @@ if(go_back == true)
   // LINE = 400 ; // 이거 바꿔야 한다.
 	cout <<"(1번 주차공간) 후진중 입니다.       " << "조향각 : " << yaw_error << endl;
 	lateral_error = right_P2.x;
-	steer_value = calculateSteerValue(0,26);
-	makeControlMsg(steer_value, throttle*(-1));
 
-	if (yaw_error > turning_angle_thres_)
-	{
+	ready3++;
+
+	if(yaw_error > reverse_max_turning_angle_thres && ready3 > READY3) {
+		makeControlMsg(26, (-1)*throttle);
 		turning_finish_flag_ = true;
+	}
+	else if(ready3 < READY3 + throttle_start_time_offset) {
+		steer_value = calculateSteerValue(0,26);
+		makeControlMsg(steer_value, throttle*(-1) - throttle_start_offset);
+	} else {
+		steer_value = calculateSteerValue(0,26);
+		makeControlMsg(steer_value, throttle*(-1));
 	}
 
 	if(turning_finish_flag_)
 	{
-		reverse_stop_point_.x = right_P2.x - reverse_stop_x_offset_;
-		reverse_stop_point_.y = right_P2.y - reverse_stop_y_offset_;
-
-		circle(frame, reverse_stop_point_,1,Scalar(0,0,255),5);
-		makeControlMsg(26, (-1)*throttle);
-
-		if(bi.at<uchar>(reverse_stop_point_.y, reverse_stop_point_.x)==255 )
-		{
+		if(yaw_error < reverse_stop_angle_thres) {
 			steer_value = 0;
 			makeControlMsg(steer_value, 0);
 			cout << "(1번공간 주차 미션 끝)  인코스 차선인식 노드를 켜주세요"<<endl;
 		}
-  }
+	}
 }
 //ready_timer_ -> rosparam
 // go front
@@ -385,6 +405,42 @@ if(go_back == true)
 			 }
 			 else
 			 {
+				 if(framecount_new_new_2_L < 1) 
+				 {
+				 	l0_p2 = r0_p2 - 10;
+					l0_p2 = linedetect.find_L0_x2(bi, LINE + reverse_detect_offset_, &framecount_new_new_2_L, l0_p2);
+				 }
+				 if(framecount_new_new_3_L < 1) 
+				 {
+				 	l0_p3 = r0_p3 - 10;
+					l0_p3 = linedetect.find_L0_x2(bi, LINE + reverse_detect_offset_ + LINE_LENGTH, &framecount_new_new_3_L, l0_p3);
+				 }
+				 if (yaw_error > turning_angle_thres_ && ready4 > READY4)
+				 {
+					 if(!out_of_room2) {
+						l0_p2 = r0_p2 - 10;
+						l0_p3 = r0_p3 - 10;
+					 }
+					 out_of_room2 = true;
+				 }
+				 if (out_of_room2)
+				 { 
+					left_P2.x = linedetect.find_LN_x(bi, l0_p2, LINE + reverse_detect_offset_ + 10, THRESHOLD);
+					left_P2.y = LINE + reverse_detect_offset_ + 10;
+					l0_p2 = left_P2.x;
+
+					left_P3.x = linedetect.find_LN_x(bi, l0_p3, LINE + reverse_detect_offset_ + LINE_LENGTH + 10, THRESHOLD);
+					left_P3.y = LINE + reverse_detect_offset_ + LINE_LENGTH + 10;
+					l0_p3 = left_P3.x;
+					 // cout << "left_P2" << left_P2 << endl;
+					 // cout << "left_P3" << left_P3 << endl;
+				 }
+/////////////
+//
+				else {
+				if (framecount_new_new_2_R < 1)	r0_p2 = linedetect.find_next_R0_x(bi, LINE + reverse_detect_offset_, &framecount_new_new_2_R, l0_p2, l0_p2 + OFFSET);
+				if (framecount_new_new_3_R < 1)	r0_p3 = linedetect.find_next_R0_x(bi, LINE + reverse_detect_offset_ + LINE_LENGTH, &framecount_new_new_3_R, l0_p3, l0_p3 + OFFSET);
+
 				right_P2.x = linedetect.find_RN_x(bi, r0_p2, LINE + reverse_detect_offset_, THRESHOLD);
 				  right_P2.y =  LINE + reverse_detect_offset_;
 				r0_p2 = right_P2.x;
@@ -392,6 +448,8 @@ if(go_back == true)
 				right_P3.x = linedetect.find_RN_x(bi, r0_p3, LINE + reverse_detect_offset_ + LINE_LENGTH, THRESHOLD);
 				right_P3.y =  LINE + reverse_detect_offset_ +  LINE_LENGTH;
 				r0_p3 = right_P3.x;
+				///////
+				 }
 			 }
 
 				if (ready_go_back2 == false)
@@ -417,6 +475,7 @@ if(go_back == true)
 							go_back2 = true;
 							steer_value = 0;
 							makeControlMsg(steer_value,0);
+							ros::Duration(3).sleep();
 							cout << "(2번 주차공간)  times = " << times2 << "   조향각 : " << yaw_error << endl;
 						}
 						ready2 = ready2 + 1;
@@ -428,9 +487,15 @@ if(go_back == true)
 				{
 					int dy = abs(LINE + LINE_LENGTH) - abs(LINE);
 					int dx = right_P2.x - right_P3.x;
-					yaw_error = atan2(dx, dy) * 180 / CV_PI;
-					steer_value = calculateSteerValue(0,26);
-					makeControlMsg(steer_value, throttle);
+					yaw_error = atan2(dx, dy) * 180  /CV_PI;
+					lateral_error = right_P2.x;
+					if(yaw_error > forward_max_turning_angle_thres && steady_state > STEADY_STATE) {
+						makeControlMsg(26, throttle);
+					}
+					else {
+						steer_value = calculateSteerValue(0,26);
+						makeControlMsg(steer_value, throttle);
+					}
 					cout << "(2번 주차공간)  전진 ready2 " << ready2 << "   조향각 : " << yaw_error << endl;
 					ready2 = ready2 + 1;
 				}
@@ -439,36 +504,41 @@ if(go_back == true)
 				if (go_back2 == true)
 				{
 					int dy = abs(LINE + LINE_LENGTH) - abs(LINE);
-					int dx = right_P3.x - right_P2.x;   // �̰� ������ �� �ݴ��̾��� �Ѵ�.
+					int dx = 0;
+					if(out_of_room2)
+						dx = left_P3.x - left_P2.x;   // �̰� ������ �� �ݴ��̾��� �Ѵ�.
+					else
+						dx = right_P3.x - right_P2.x;   // �̰� ������ �� �ݴ��̾��� �Ѵ�.
 					yaw_error = atan2(dx, dy) * 180 / CV_PI;
 				  // LINE = 400;
 					lateral_error = right_P2.x;
-          steer_value = calculateSteerValue(0,26);
-					makeControlMsg(steer_value, (-1)*throttle);
 
 					cout << "(2번 주차공간) 후진중 입니다.          " << "조향각  :" << yaw_error << endl;
 					//������ �����ð� �ϸ� ����
 
-					if (yaw_error > turning_angle_thres_)
-					{
-						turning_finish_flag_ == true;
+					ready4++;
+
+					if(yaw_error > reverse_max_turning_angle_thres && ready4 > READY4) {
+						makeControlMsg(26, (-1)*throttle);
+						turning_finish_flag_ = true;
+					}
+					else if(ready4 < READY4 + throttle_start_time_offset) {
+						steer_value = calculateSteerValue(0,26);
+						makeControlMsg(steer_value, throttle*(-1) - throttle_start_offset);
+					} else {
+						steer_value = calculateSteerValue(0,26);
+						makeControlMsg(steer_value, throttle*(-1));
 					}
 
 					if(turning_finish_flag_)
 					{
-						reverse_stop_point_.x = right_P2.x - reverse_stop_x_offset_;
-						reverse_stop_point_.y = right_P2.y - reverse_stop_y_offset_;
-
-						circle(frame, reverse_stop_point_,1,Scalar(0,0,255),5);
-						makeControlMsg(26, (-1)*throttle);
-
-						if(bi.at<uchar>(reverse_stop_point_.y, reverse_stop_point_.x)==255 )
-						{
+						if(yaw_error < reverse_stop_angle_thres) {
 							steer_value = 0;
 							makeControlMsg(steer_value, 0);
 							cout << "(2번공간 주차 미션 끝)  인코스 차선인식 노드를 켜주세요"<<endl;
 						}
 					}
+
 				}
 			}
 			else
@@ -489,6 +559,7 @@ if(go_back == true)
 				l0_p3 = left_P3.x;
 				r0_p3 = l0_p3;
 
+			
 
 				int dy = abs(LINE + LINE_LENGTH) - abs(LINE);
 				int dx = left_P2.x - left_P3.x;
@@ -504,7 +575,7 @@ if(go_back == true)
 	sum_ += ms;
 	avg = sum_ / temp;
 
-	//cout << "it took : " << ms << "ms." << "���� : " << avg << " �ʴ� ó�� �����Ӽ� : " << 1000 / avg << "  ���Ⱒ : " << yaw_error << endl;
+	cout << "it took : " << ms << "ms." << "���� : " << avg << " �ʴ� ó�� �����Ӽ� : " << 1000 / avg << "  ���Ⱒ : " << yaw_error << endl;
 
 /*
 	line(frame, right_P2 , right_P3 , Scalar(0, 255, 0), 5);
@@ -520,8 +591,8 @@ if(go_back == true)
 			line(frame, right_P2, right_P3, Scalar(0, 255, 0), 5);
 			if (ready_go_back && yaw_error < YAW_ERROR) circle(frame, forward_stop_point_, 1, Scalar(0, 0, 255), 5);
 			circle(frame, obstract, 1, Scalar(255, 0, 0), 5);
-			imshow("gray_binary", a);
-			imshow("hsv_s_binary", b);
+			imshow("gray_binary", b);
+			imshow("hsv_s_binary", a);
 			imshow("binary img", bi);
 			imshow("frame", frame);
 			//imshow("roi", Roi);
@@ -530,11 +601,14 @@ if(go_back == true)
 		{
 			if (next_room_time > NEXT_ROOM_TIME)
 			{
-				line(frame, right_P2, right_P3, Scalar(0, 255, 0), 5);
 				if (ready_go_back2 && yaw_error < YAW_ERROR) circle(frame, forward_stop_point_, 1, Scalar(0, 0, 255), 5);
+				if(out_of_room2)
+					line(frame, left_P2, left_P3, Scalar(0, 255, 0), 5);
+				else
+					line(frame, right_P2, right_P3, Scalar(0, 255, 0), 5);
 				circle(frame, obstract, 1, Scalar(255, 0, 0), 5);
-				imshow("gray_binary", a);
-				imshow("hsv_s_binary", b);
+				imshow("gray_binary", b);
+				imshow("hsv_s_binary", a);
 				imshow("binary img", bi);
 				imshow("frame", frame);
 				//imshow("roi", Roi);
@@ -543,8 +617,8 @@ if(go_back == true)
 			{
 				line(frame, left_P2, left_P3, Scalar(0, 255, 0), 5);
 				circle(frame, obstract, 1, Scalar(255, 0, 0), 5);
-				imshow("gray_binary", a);
-				imshow("hsv_s_binary", b);
+				imshow("gray_binary", b);
+				imshow("hsv_s_binary", a);
 				imshow("binary img", bi);
 				imshow("frame", frame);
 				//imshow("roi", Roi);

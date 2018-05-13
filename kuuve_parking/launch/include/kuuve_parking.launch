@@ -1,32 +1,37 @@
 <launch>
 	<node pkg="kuuve_parking" type="kuuve_parking" name="kuuve_parking">
-		<param name="resize_width" value="1260" />
-		<param name="resize_height" value="540" />
+		<param name="resize_width" value="480" />
+		<param name="resize_height" value="270" />
 
 		<param name="steer_max_angle" value="26" />
-		<param name="gray_bin_thres" value="70" />
+		<param name="gray_bin_thres" value="190" />
 		<param name="hsv_s_bin_thres" value="150" />
 
 		<!-- pixel value -->
 		<!-- y_offset = front point y offset (P2) -->
-		<param name="detect_y_offset" value="250" />
-		<param name="line_length" value="25" />
+		<param name="detect_y_offset" value="70" />
+		<param name="line_length" value="10" />
 
-		<param name="reverse_detect_offset" value="200" />
+		<param name="reverse_detect_offset" value="300" />
 
-		<param name="forward_stop_x_offset" value="6" />
+		<param name="forward_stop_x_offset" value="5" />
 		<param name="forward_stop_y_offset" value="20" />
-		<param name="reverse_stop_x_offset" value="-40" />
-		<param name="reverse_stop_y_offset" value="900" />
+		<!-- param name="reverse_stop_x_offset" value="-40" /-->
+		<!--param name="reverse_stop_y_offset" value="900" /-->
 
 		<!-- factor 0 ~ 100 -->
 		<param name="yaw_factor" value="100" />
 		<param name="lateral_factor" value="0" />
 
-		<param name="throttle" value="3" />
+		<param name="throttle" value="2" />
+		<param name="throttle_start_offset" value="4" />
+		<param name="throttle_start_time_offset" value="40" />
 
 		<!-- param name="go_back_stop_time" value="200" /-->
 		<param name="turning_angle_thres" value="20" />
+		<param name="forward_max_turning_angle_thres" value="10" />
+		<param name="reverse_max_turning_angle_thres" value="10" />
+		<param name="reverse_stop_angle_thres" value="8" />
 
 		<!-- 0 is a top and 100 is a bottom -->
 		<param name="roi_top_location" value="20" />
@@ -35,8 +40,8 @@
 		<remap from="kuuve_parking/ackermann" to="ackermann" />
 
 		<!-- obstract -->
-		<param name="obstract_detect_x" value="80" />
-		<param name="obstract_detect_y" value="80" />
+		<param name="obstract_detect_x" value="70" />
+		<param name="obstract_detect_y" value="5" />
 
 		<param name="object_detect_time" value="10" />
 
@@ -46,12 +51,14 @@
 
 		<param name="ready1" value="10" />
 		<param name="ready2" value="10" />
+		<param name="ready3" value="80" />
+		<param name="ready4" value="80" />
 
-		<param name="next_room_time" value="30" />
+		<param name="next_room_time" value="60" />
 
 		<param name="next_room_offset" value="40" />
 
-		<param name="gaussian_param" value="1" />
+		<!--param name="gaussian_param" value="1" /-->
 
 	</node>
 </launch>
