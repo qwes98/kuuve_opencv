@@ -62,6 +62,7 @@ void CrosswalkStopNode::actionCallback(const crosswalk_stop::MissionPlannerGoalC
 		if(mission_cleared_) {
 			crosswalk_stop::MissionPlannerResult result;
 			as_.setSucceeded(result);
+			mission_start_ = false;
 			break;
 		}
 		r.sleep();	// sleep 0.1 sec
