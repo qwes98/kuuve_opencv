@@ -23,15 +23,15 @@
 		<param name="yaw_factor" value="100" />
 		<param name="lateral_factor" value="0" />
 
-		<param name="throttle" value="2" />
-		<param name="throttle_start_offset" value="4" />
-		<param name="throttle_start_time_offset" value="40" />
+		<param name="throttle" value="3" />
+		<param name="throttle_start_offset" value="2" />
+		<param name="throttle_start_time_offset" value="0" />
 
 		<!-- param name="go_back_stop_time" value="200" /-->
 		<param name="turning_angle_thres" value="20" />
 		<param name="forward_max_turning_angle_thres" value="10" />
-		<param name="reverse_max_turning_angle_thres" value="10" />
-		<param name="reverse_stop_angle_thres" value="8" />
+		<param name="reverse_max_turning_angle_thres" value="15" />
+		<param name="reverse_stop_angle_thres" value="11" />
 
 		<!-- 0 is a top and 100 is a bottom -->
 		<param name="roi_top_location" value="20" />
@@ -40,8 +40,8 @@
 		<remap from="kuuve_parking/ackermann" to="ackermann" />
 
 		<!-- obstract -->
-		<param name="obstract_detect_x" value="70" />
-		<param name="obstract_detect_y" value="5" />
+		<param name="obstract_detect_x" value="80" />
+		<param name="obstract_detect_y" value="2" />
 
 		<param name="object_detect_time" value="10" />
 
@@ -52,7 +52,7 @@
 		<param name="ready1" value="10" />
 		<param name="ready2" value="10" />
 		<param name="ready3" value="80" />
-		<param name="ready4" value="80" />
+		<param name="ready4" value="120" />
 
 		<param name="next_room_time" value="60" />
 

@@ -185,7 +185,7 @@ void ParkingNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 		{
 			object_detect_time = object_detect_time + 1;
 
-			if(bi_object.at<uchar>(obstract.y, obstract.x) = 255 && object_detect_time < OBJECT_DETECT_TIME)
+			if(bi_object.at<uchar>(obstract.y, obstract.x) == 255 && object_detect_time < OBJECT_DETECT_TIME)
 			{
 				this_room = false;
 			}
@@ -240,6 +240,7 @@ if(ready_go_back && yaw_error < YAW_ERROR)
 			times = times + 1;
 			steer_value = 0;
 			makeControlMsg(steer_value,0);
+			control_pub.publish(control_msg);
 			ros::Duration(3).sleep();
 
 			go_back = true;
@@ -256,14 +257,15 @@ if(go_back == false)
 	int dx = right_P2.x - right_P3.x;
 	yaw_error = atan2(dx, dy) * 180  /CV_PI;
 	lateral_error = right_P2.x;
-	cout << "!!!!!!!!!! yaw_error: " << yaw_error << " max_turing:  " << forward_max_turning_angle_thres << endl;
 	if(yaw_error > forward_max_turning_angle_thres && steady_state > STEADY_STATE) {
 		makeControlMsg(26, throttle);
 	}
+	/*
 	else if(steady_state < STEADY_STATE + throttle_start_time_offset) {
 		steer_value = calculateSteerValue(0,26);
 		makeControlMsg(steer_value, throttle + throttle_start_offset);
 	}
+	*/
 	else {
 		steer_value = calculateSteerValue(0,26);
 		makeControlMsg(steer_value, throttle);
@@ -287,10 +289,12 @@ if(go_back == true)
 		makeControlMsg(26, (-1)*throttle);
 		turning_finish_flag_ = true;
 	}
+	/*
 	else if(ready3 < READY3 + throttle_start_time_offset) {
 		steer_value = calculateSteerValue(0,26);
 		makeControlMsg(steer_value, throttle*(-1) - throttle_start_offset);
-	} else {
+	} */
+	else {
 		steer_value = calculateSteerValue(0,26);
 		makeControlMsg(steer_value, throttle*(-1));
 	}
@@ -475,6 +479,7 @@ if(go_back == true)
 							go_back2 = true;
 							steer_value = 0;
 							makeControlMsg(steer_value,0);
+							control_pub.publish(control_msg);
 							ros::Duration(3).sleep();
 							cout << "(2번 주차공간)  times = " << times2 << "   조향각 : " << yaw_error << endl;
 						}
@@ -522,10 +527,12 @@ if(go_back == true)
 						makeControlMsg(26, (-1)*throttle);
 						turning_finish_flag_ = true;
 					}
+					/*
 					else if(ready4 < READY4 + throttle_start_time_offset) {
 						steer_value = calculateSteerValue(0,26);
 						makeControlMsg(steer_value, throttle*(-1) - throttle_start_offset);
-					} else {
+					} */
+					else {
 						steer_value = calculateSteerValue(0,26);
 						makeControlMsg(steer_value, throttle*(-1));
 					}
