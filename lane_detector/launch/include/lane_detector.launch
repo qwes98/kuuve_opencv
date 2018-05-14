@@ -13,7 +13,7 @@
 
 		<!-- 2. Detect line -->
 		<param name="detect_line_count" value="1" />
-		<param name="detect_y_offset_1" value="25" />
+		<param name="detect_y_offset_1" value="20" />
 		<!-- param name="detect_y_offset_2" value="" /-->
 
 		<param name="continuous_detect_pixel" value="30" />
@@ -30,7 +30,7 @@
 
 		<!-- scale platform -->
 		<param name="steer_max_angle" value="26" />
-		<param name="throttle" value="7" />
+		<param name="throttle" value="8" />
 		<remap from="/lane_detector/ackermann" to="ackermann" />
 
 		<!-- 5. Control factor -->

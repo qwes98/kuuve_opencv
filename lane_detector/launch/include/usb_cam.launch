@@ -1,12 +1,12 @@
 <launch>
-	<node name="lane_usb_cam" pkg="usb_cam" type="usb_cam_node" output="screen" >
+	<node name="center_usb_cam" pkg="usb_cam" type="usb_cam_node" output="screen" >
 		<param name="video_device" value="/dev/video2" />
 		<param name="image_width" value="640" />
 		<param name="image_height" value="480" />
 		<param name="pixel_format" value="yuyv" />
-		<param name="camera_frame_id" value="lane_usb_cam" />
+		<param name="camera_frame_id" value="center_usb_cam" />
 		<param name="io_method" value="mmap"/>
 		<param name="framerate" value="30"/>
-		<remap from="/lane_usb_cam/image_raw" to="lane_image_raw" />
+		<remap from="/center_usb_cam/image_raw" to="center_image_raw" />
 	</node>
 </launch>

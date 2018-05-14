@@ -28,7 +28,7 @@ CrosswalkStopNode::CrosswalkStopNode()
 
 #if WEBCAM
 	//image_sub_ = nh_.subscribe("/usb_cam/image_raw", 1, &CrosswalkStopNode::imageCallback, this);
-	image_sub_ = nh_.subscribe("/cross_image_raw", 1, &CrosswalkStopNode::imageCallback, this);
+	image_sub_ = nh_.subscribe("/center_image_raw", 1, &CrosswalkStopNode::imageCallback, this);
 #elif	PROSILICA_GT_CAM
 	image_sub_ = nh_.subscribe("/camera/image_raw", 1, &CrosswalkStopNode::imageCallback, this);
 #endif
