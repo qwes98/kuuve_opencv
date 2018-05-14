@@ -15,6 +15,8 @@ find_package(catkin REQUIRED COMPONENTS
 	sensor_msgs
 	actionlib_msgs
 	actionlib
+	obstacle_detector
+	geometry_msgs
 )
 
 #find_package(OpenCV 3 REQUIRED)
@@ -123,7 +125,7 @@ generate_messages(
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES opencv_test
-  CATKIN_DEPENDS roscpp std_msgs sensor_msgs actionlib_msgs
+  CATKIN_DEPENDS roscpp std_msgs sensor_msgs actionlib_msgs obstacle_detector
   DEPENDS system_lib
 )
 

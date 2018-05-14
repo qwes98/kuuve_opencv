@@ -1,4 +1,5 @@
 #include "kuuve_parking/ParkingNode.h"
+#include <math.h>
 
 using namespace std;
 using namespace cv;
@@ -13,6 +14,8 @@ ParkingNode::ParkingNode()
 	control_pub = nh_.advertise<ackermann_msgs::AckermannDriveStamped>("ackermann", 10);
 
 	image_sub = nh_.subscribe("/parking_image_raw", 1, &ParkingNode::imageCallback, this);
+
+	obstacle_sub = nh_.subscribe("/raw_obstacles", 1, &ParkingNode::obstacleCallback, this);
 
 	getRosParamForInitiation();
 
@@ -44,14 +47,86 @@ void ParkingNode::actionCallback(const kuuve_parking::MissionPlannerGoalConstPtr
 
 }
 
+void ParkingNode::obstacleCallback(const obstacle_detector::Obstacles data)
+{
+	obstacle_detector::CircleObstacle nearest_circle_obs;
+	nearest_circle_obs.center.x = data.circles[0].center.x;
+	for(int i = 1; i < data.circles.size(); i++) {
+		if(circleObsIsInRoi(data.circles[i]) && circleObsIsNearThan(data.circles[i], nearest_circle_obs)) {
+			//nearest_circle_obs.center.x = data.circles[i].center.x;
+			//nearest_circle_obs.center.y = data.circles[i].center.y;
+			nearest_circle_obs = data.circles[i];
+		}
+	}
+
+	obstacle_detector::SegmentObstacle nearest_segment_obs;
+	nearest_segment_obs = data.segments[0];
+	for(int i = 0; i < data.segments.size(); i++) {
+		if(segmentObsIsInRoi(data.segments[i]) && segmentObsIsNearThan(data.segments[i], nearest_segment_obs)) {
+			nearest_segment_obs = data.segments[i];
+		}
+	}
+
+	double nearest_obs_dist = calNearestObsDist(nearest_circle_obs, nearest_segment_obs);
+
+	if(nearest_obs_dist < this_room_dist_thres_) // 1번 주차공간에 장애물 있음
+		instant_this_room_obs = true;
+	else
+		instant_this_room_obs = false;
+}
+
+bool ParkingNode::circleObsIsInRoi(const obstacle_detector::CircleObstacle& obs)
+{
+	return (obs.center.y < 0 && obs.center.y > (-1) * obstacle_y_thres_) && (obs.center.x > 0 && obs.center.x < (-1) * obstacle_x_thres_);
+}
+
+bool ParkingNode::circleObsIsNearThan(const obstacle_detector::CircleObstacle& obs1, const obstacle_detector::CircleObstacle& obs2)
+{
+	return sqrt(obs1.center.x * obs1.center.x + obs1.center.y * obs1.center.y) < sqrt(obs2.center.x * obs2.center.x + obs2.center.y * obs2.center.y);
+}
+
+bool ParkingNode::segmentObsIsInRoi(const obstacle_detector::SegmentObstacle& obs)
+{
+	geometry_msgs::Point center;
+	center.x = (obs.first_point.x + obs.last_point.x) / 2;
+	center.y = (obs.first_point.y + obs.last_point.y) / 2;
+	return (center.y < 0 && center.y > (-1) * obstacle_y_thres_) && (center.x > 0 && center.x < (-1) * obstacle_x_thres_);
+}
+
+bool ParkingNode::segmentObsIsNearThan(const obstacle_detector::SegmentObstacle& obs1, const obstacle_detector::SegmentObstacle& obs2)
+{
+	geometry_msgs::Point center1;
+	center1.x = (obs1.first_point.x + obs1.last_point.x) / 2;
+	center1.y = (obs1.first_point.y + obs1.last_point.y) / 2;
+
+	geometry_msgs::Point center2;
+	center2.x = (obs2.first_point.x + obs2.last_point.x) / 2;
+	center2.y = (obs2.first_point.y + obs2.last_point.y) / 2;
+
+	return sqrt(center1.x * center1.x + center1.y * center1.y) < sqrt(center2.x * center2.x + center2.y * center2.y);
+}
+
+double ParkingNode::calNearestObsDist(const obstacle_detector::CircleObstacle& circle_obs, const obstacle_detector::SegmentObstacle& segment_obs)
+{
+	double dist_from_circle = sqrt(circle_obs.center.x * circle_obs.center.x + circle_obs.center.y * circle_obs.center.y);
+
+	
+	geometry_msgs::Point center_of_segment;
+	center_of_segment.x = (segment_obs.first_point.x + segment_obs.last_point.x) / 2;
+	center_of_segment.y = (segment_obs.first_point.y + segment_obs.last_point.y) / 2;
+	double dist_from_segment = sqrt(center_of_segment.x * center_of_segment.x + center_of_segment.y * center_of_segment.y);
+
+	if(dist_from_circle < dist_from_segment)
+		return dist_from_circle;
+	else
+		return dist_from_segment;
+}
+
 void ParkingNode::getRosParamForInitiation()
 {
 	nh_.getParam("resize_width", width);
 	nh_.getParam("resize_height", length);
 	nh_.getParam("steer_max_yaw_error", STEER_MAX_ANGLE_);
-	nh_.getParam("obstract_detect_x", obstract_detect_x_location);
-	nh_.getParam("obstract_detect_y", obstract_detect_y_location);
-	nh_.getParam("object_detect_time", OBJECT_DETECT_TIME);
 	nh_.getParam("steady_state", STEADY_STATE);
 	nh_.getParam("yaw_error_for_stop_point", YAW_ERROR);
 	nh_.getParam("ready1", READY);
@@ -84,6 +159,9 @@ void ParkingNode::getRosParamForUpdate()
 	nh_.getParam("turning_angle_thres", turning_angle_thres_);
 	nh_.getParam("reverse_detect_offset", reverse_detect_offset_);
 	nh_.getParam("gaussian_param", gaussian_param);
+	nh_.getParam("obstacle_x_thres", obstacle_x_thres_);
+	nh_.getParam("obstacle_y_thres", obstacle_y_thres_);
+	nh_.getParam("this_room_dist_thres", this_room_dist_thres_);
 
 	int yaw_factor_tmp = 0;
 	nh_.getParam("yaw_factor", yaw_factor_tmp);
@@ -195,22 +273,16 @@ void ParkingNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 		bi = b;
 	  bi_object = a + b; // 사물 디택트를 위함.
 
-	  //사물 디택트 위치.
-		obstract.x = bi.cols * obstract_detect_x_location / 100 ;
-		obstract.y = bi.rows * obstract_detect_y_location / 100 ;
 		////////////////////////////
 
 		// 주차노드 켜질때 불안정한것 안정화 될때까지 그냥 방향 제어만 한다.
 		steady_state = steady_state + 1;
 		/////////////////////////////////
 
-		if (this_room == true)
-		{
+		if(this_room) {
 			if (yaw_error > turning_angle_thres_ && steady_state > STEADY_STATE)
 			{
-				object_detect_time = object_detect_time + 1;
-
-				if(bi_object.at<uchar>(obstract.y, obstract.x) == 255 && object_detect_time < OBJECT_DETECT_TIME)
+				if(instant_this_room_obs)
 				{
 					this_room = false;
 				}

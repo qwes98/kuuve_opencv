@@ -11,6 +11,11 @@
 #include <actionlib/server/simple_action_server.h>
 #include <memory>
 #include <opencv2/opencv.hpp>
+#include <obstacle_detector/Obstacles.h>
+#include <obstacle_detector/CircleObstacle.h>
+#include <sensor_msgs/PointCloud2.h>
+#include <geometry_msgs/Point.h>
+#include <vector>
 #include "kuuve_parking/LineDetector.h"
 #include "lane_detector/ConditionalCompile.h"
 #include "kuuve_parking/MissionPlannerAction.h"
@@ -23,6 +28,8 @@ public:
 	void actionCallback(const kuuve_parking::MissionPlannerGoalConstPtr& goal);
 
 	void imageCallback(const sensor_msgs::ImageConstPtr& image);
+
+	void obstacleCallback(const obstacle_detector::Obstacles data);
 
 private:
 	void printData();
@@ -42,11 +49,18 @@ private:
 
 private:
 	//bool readyIsFinished();
+	bool circleObsIsInRoi(const obstacle_detector::CircleObstacle& obs);
+	bool circleObsIsNearThan(const obstacle_detector::CircleObstacle& obs1, const obstacle_detector::CircleObstacle& obs2);
 
+	bool segmentObsIsInRoi(const obstacle_detector::SegmentObstacle& obs);
+	bool segmentObsIsNearThan(const obstacle_detector::SegmentObstacle& obs1, const obstacle_detector::SegmentObstacle& obs2);
+
+	double calNearestObsDist(const obstacle_detector::CircleObstacle& circle_obs, const obstacle_detector::SegmentObstacle& segment_obs);
 private:
 	ros::NodeHandle nh_;
 	ros::Publisher control_pub;
 	ros::Subscriber image_sub;
+	ros::Subscriber obstacle_sub;
 
 	actionlib::SimpleActionServer<kuuve_parking::MissionPlannerAction> as_;
 
@@ -75,7 +89,6 @@ private:
 	int turning_angle_thres_ = 20;
 	bool turning_finish_flag_ = false;
 
-
   //ȭ�� resize
   int width = 960/1.5;   //960
   int length = 540/1.5;  // 540
@@ -97,10 +110,6 @@ private:
 
   int reverse_detect_offset_ = 100;
 ///////////////////////////////////////////////////
-	int obstract_detect_x_location = 80; // 퍼센트이다. 80퍼면 화면의 가로길이의 80퍼의 위치
-  int obstract_detect_y_location = 7 ; // 단위는 퍼센트이다.
-	int object_detect_time = 0;
-	int OBJECT_DETECT_TIME = 10;
   int steady_state = 0; // 0부터 계속 올라간다.
   bool this_room = true; // 일단은 1번 주차공간에 넣는다고 가정한다.
 	bool ready_go_back = false;
@@ -183,6 +192,16 @@ int l0_p3=15;
 	//cv::Point reverse_stop_point_;
 
   LaneDetect linedetect;
+	
+  /* obstacle detector variables*/
+  // std::vector<obstacle_detector::CircleObstacle> vehicle_circles;
+  geometry_msgs::Point nearest_point_;
+  double obstacle_x_thres_;	// vehicle front = +x
+  double obstacle_y_thres_;	// vehicle left = +y
+  double this_room_dist_thres_;
+ 
+  bool instant_this_room_obs = true;
+
 
 };
 

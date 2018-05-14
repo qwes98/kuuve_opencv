@@ -40,10 +40,10 @@
 		<remap from="kuuve_parking/ackermann" to="ackermann" />
 
 		<!-- obstract -->
-		<param name="obstract_detect_x" value="80" />
-		<param name="obstract_detect_y" value="2" />
+		<param name="obstacle_x_thres" type="double" value="3.0" />
+		<param name="obstacle_y_thres" type="double" value="3.0" />
+		<param name="this_room_dist_thres" type="double" value="2.0" />
 
-		<param name="object_detect_time" value="10" />
 
 		<param name="steady_state" value="50" />
 
