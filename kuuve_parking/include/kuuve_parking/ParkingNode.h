@@ -1,22 +1,26 @@
 #ifndef PARKINGNODE_H
 #define PARKINGNODE_H
 
-#include <ros/ros.h> 
-#include <std_msgs/String.h> 
+#include <ros/ros.h>
+#include <std_msgs/String.h>
 #include <cv_bridge/cv_bridge.h>
 #include <image_transport/image_transport.h>
 #include <sensor_msgs/image_encodings.h>
 #include <ackermann_msgs/AckermannDriveStamped.h>
 #include <signal.h>
+#include <actionlib/server/simple_action_server.h>
 #include <memory>
 #include <opencv2/opencv.hpp>
 #include "kuuve_parking/LineDetector.h"
 #include "lane_detector/ConditionalCompile.h"
+#include "kuuve_parking/MissionPlannerAction.h"
 
 class ParkingNode
 {
 public:
 	ParkingNode();
+
+	void actionCallback(const kuuve_parking::MissionPlannerGoalConstPtr& goal);
 
 	void imageCallback(const sensor_msgs::ImageConstPtr& image);
 
@@ -43,6 +47,11 @@ private:
 	ros::NodeHandle nh_;
 	ros::Publisher control_pub;
 	ros::Subscriber image_sub;
+
+	actionlib::SimpleActionServer<kuuve_parking::MissionPlannerAction> as_;
+
+	bool mission_start_ = false;	// for action
+  bool mission_cleared_ = false;
 
   double yaw_factor = 1.0;
   double lateral_factor = 1.0;
