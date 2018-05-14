@@ -27,7 +27,8 @@ LaneDetectorNode::LaneDetectorNode()
 #endif
 
 #if WEBCAM
-	image_sub_ = nh_.subscribe("/usb_cam/image_raw", 1, &LaneDetectorNode::imageCallback, this);
+	//image_sub_ = nh_.subscribe("/usb_cam/image_raw", 1, &LaneDetectorNode::imageCallback, this);
+	image_sub_ = nh_.subscribe("/lane_image_raw", 1, &LaneDetectorNode::imageCallback, this);
 #elif	PROSILICA_GT_CAM
 	image_sub_ = nh_.subscribe("/camera/image_raw", 1, &LaneDetectorNode::imageCallback, this);
 #endif
