@@ -77,7 +77,7 @@ void ParkingNode::obstacleCallback(const obstacle_detector::Obstacles data)
 
 bool ParkingNode::circleObsIsInRoi(const obstacle_detector::CircleObstacle& obs)
 {
-	return (obs.center.y < 0 && obs.center.y > (-1) * obstacle_y_thres_) && (obs.center.x > 0 && obs.center.x < (-1) * obstacle_x_thres_);
+	return (obs.center.y < 0 && obs.center.y > (-1) * obstacle_y_thres_) && (obs.center.x > 0 && obs.center.x < obstacle_x_thres_);
 }
 
 bool ParkingNode::circleObsIsNearThan(const obstacle_detector::CircleObstacle& obs1, const obstacle_detector::CircleObstacle& obs2)
@@ -90,7 +90,7 @@ bool ParkingNode::segmentObsIsInRoi(const obstacle_detector::SegmentObstacle& ob
 	geometry_msgs::Point center;
 	center.x = (obs.first_point.x + obs.last_point.x) / 2;
 	center.y = (obs.first_point.y + obs.last_point.y) / 2;
-	return (center.y < 0 && center.y > (-1) * obstacle_y_thres_) && (center.x > 0 && center.x < (-1) * obstacle_x_thres_);
+	return (center.y < 0 && center.y > (-1) * obstacle_y_thres_) && (center.x > 0 && center.x < obstacle_x_thres_);
 }
 
 bool ParkingNode::segmentObsIsNearThan(const obstacle_detector::SegmentObstacle& obs1, const obstacle_detector::SegmentObstacle& obs2)
