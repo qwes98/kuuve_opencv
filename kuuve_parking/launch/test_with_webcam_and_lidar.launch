@@ -4,5 +4,4 @@
 	<include file="$(find kuuve_parking)/launch/include/usb_cam.launch"/>
 	<include file="$(find kuuve_parking)/launch/include/kuuve_parking.launch"/>
 	<include file="$(find kuuve_parking)/launch/include/obstacle_extractor.launch"/>
-	<include file="$(find kuuve_parking)/launch/include/serial_comm.launch"/>
 </launch>
