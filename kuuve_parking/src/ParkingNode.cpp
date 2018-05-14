@@ -455,12 +455,12 @@ void ParkingNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 					 }
 					 if (out_of_room2)
 					 {
-						left_P2.x = linedetect.find_LN_x(bi, l0_p2, LINE + reverse_detect_offset_ + 10, THRESHOLD);
-						left_P2.y = LINE + reverse_detect_offset_ + 10;
+						left_P2.x = linedetect.find_LN_x(bi, l0_p2, LINE + reverse_detect_offset_ + 0, THRESHOLD);
+						left_P2.y = LINE + reverse_detect_offset_ + 0;
 						l0_p2 = left_P2.x;
 
-						left_P3.x = linedetect.find_LN_x(bi, l0_p3, LINE + reverse_detect_offset_ + LINE_LENGTH + 10, THRESHOLD);
-						left_P3.y = LINE + reverse_detect_offset_ + LINE_LENGTH + 10;
+						left_P3.x = linedetect.find_LN_x(bi, l0_p3, LINE + reverse_detect_offset_ + LINE_LENGTH + 0, THRESHOLD);
+						left_P3.y = LINE + reverse_detect_offset_ + LINE_LENGTH + 0;
 						l0_p3 = left_P3.x;
 						 // cout << "left_P2" << left_P2 << endl;
 						 // cout << "left_P3" << left_P3 << endl;

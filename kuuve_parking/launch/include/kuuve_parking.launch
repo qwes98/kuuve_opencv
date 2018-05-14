@@ -12,10 +12,10 @@
 		<param name="detect_y_offset" value="70" />
 		<param name="line_length" value="10" />
 
-		<param name="reverse_detect_offset" value="300" />
+		<param name="reverse_detect_offset" value="310" />
 
-		<param name="forward_stop_x_offset" value="5" />
-		<param name="forward_stop_y_offset" value="20" />
+		<param name="forward_stop_x_offset" value="4" />
+		<param name="forward_stop_y_offset" value="25" />
 		<!-- param name="reverse_stop_x_offset" value="-40" /-->
 		<!--param name="reverse_stop_y_offset" value="900" /-->
 
@@ -31,7 +31,7 @@
 		<param name="turning_angle_thres" value="20" />
 		<param name="forward_max_turning_angle_thres" value="10" />
 		<param name="reverse_max_turning_angle_thres" value="15" />
-		<param name="reverse_stop_angle_thres" value="11" />
+		<param name="reverse_stop_angle_thres" value="15" />
 
 		<!-- 0 is a top and 100 is a bottom -->
 		<param name="roi_top_location" value="20" />
@@ -54,7 +54,7 @@
 		<param name="ready3" value="80" />
 		<param name="ready4" value="120" />
 
-		<param name="next_room_time" value="60" />
+		<param name="next_room_time" value="30" />
 
 		<param name="next_room_offset" value="40" />
 
