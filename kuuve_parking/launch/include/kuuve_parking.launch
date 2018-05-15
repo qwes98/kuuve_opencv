@@ -22,6 +22,7 @@
 		<!-- factor 0 ~ 100 -->
 		<param name="yaw_factor" value="100" />
 		<param name="lateral_factor" value="0" />
+		<param name="first_driving_yaw_factor" value="300" />
 
 		<param name="throttle" value="3" />
 		<param name="throttle_start_offset" value="2" />
@@ -43,6 +44,7 @@
 		<param name="obstacle_x_thres" type="double" value="3.0" />
 		<param name="obstacle_y_thres" type="double" value="3.0" />
 		<param name="this_room_dist_thres" type="double" value="2.0" />
+		<param name="obstacle_detect_time" value="10" />
 
 
 		<param name="steady_state" value="50" />

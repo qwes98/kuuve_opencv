@@ -202,6 +202,11 @@ int l0_p3=15;
  
   bool instant_this_room_obs = true;
 
+  int obstacle_detect_time = 0;
+  int OBSTACLE_DETECT_TIME = 10;
+
+  double first_driving_yaw_factor = 1.0;
+
 
 };
 
