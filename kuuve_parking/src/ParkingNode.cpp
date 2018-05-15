@@ -77,7 +77,7 @@ void ParkingNode::obstacleCallback(const obstacle_detector::Obstacles data)
 
 bool ParkingNode::circleObsIsInRoi(const obstacle_detector::CircleObstacle& obs)
 {
-	return (obs.center.y < 0 && obs.center.y > (-1) * obstacle_y_thres_) && (obs.center.x > 0 && obs.center.x < obstacle_x_thres_);
+	return (obs.center.y < 0 && obs.center.y > (-1) * obstacle_y_thres_) && (obs.center.x > 0 && obs.center.x < (-1) * obstacle_x_thres_);
 }
 
 bool ParkingNode::circleObsIsNearThan(const obstacle_detector::CircleObstacle& obs1, const obstacle_detector::CircleObstacle& obs2)
@@ -90,7 +90,7 @@ bool ParkingNode::segmentObsIsInRoi(const obstacle_detector::SegmentObstacle& ob
 	geometry_msgs::Point center;
 	center.x = (obs.first_point.x + obs.last_point.x) / 2;
 	center.y = (obs.first_point.y + obs.last_point.y) / 2;
-	return (center.y < 0 && center.y > (-1) * obstacle_y_thres_) && (center.x > 0 && center.x < obstacle_x_thres_);
+	return (center.y < 0 && center.y > (-1) * obstacle_y_thres_) && (center.x > 0 && center.x < (-1) * obstacle_x_thres_);
 }
 
 bool ParkingNode::segmentObsIsNearThan(const obstacle_detector::SegmentObstacle& obs1, const obstacle_detector::SegmentObstacle& obs2)
@@ -138,6 +138,7 @@ void ParkingNode::getRosParamForInitiation()
 	nh_.getParam("forward_max_turning_angle_thres", forward_max_turning_angle_thres);
 	nh_.getParam("reverse_max_turning_angle_thres", reverse_max_turning_angle_thres);
 	nh_.getParam("reverse_stop_angle_thres", reverse_stop_angle_thres);
+	nh_.getParam("obstacle_detect_time", OBSTACLE_DETECT_TIME);
 }
 
 void ParkingNode::getRosParamForUpdate()
@@ -170,6 +171,10 @@ void ParkingNode::getRosParamForUpdate()
 	int lateral_factor_tmp = 0;
 	nh_.getParam("lateral_factor", lateral_factor_tmp);
 	lateral_factor = (double)lateral_factor_tmp / 100;
+
+	int first_driving_yaw_factor_tmp = 0;
+	nh_.getParam("first_driving_yaw_factor", first_driving_yaw_factor_tmp);
+	first_driving_yaw_factor = (double)first_driving_yaw_factor_tmp / 100;
 
 	// linedetect.reverse_stop_x_offset_ = reverse_stop_x_offset_;
 
@@ -282,7 +287,8 @@ void ParkingNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 		if(this_room) {
 			if (yaw_error > turning_angle_thres_ && steady_state > STEADY_STATE)
 			{
-				if(instant_this_room_obs)
+				obstacle_detect_time++;
+				if(instant_this_room_obs && obstacle_detect_time < OBSTACLE_DETECT_TIME)
 				{
 					this_room = false;
 				}
@@ -365,7 +371,7 @@ void ParkingNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 		*/
 		else {
 			steer_value = calculateSteerValue(0,26);
-			makeControlMsg(steer_value, throttle);
+			makeControlMsg(steer_value * first_driving_yaw_factor, throttle);
 		}
 		cout << "(1번 주차공간) 전진 ready : " << ready << "    조향각 : " << yaw_error << endl;
 
