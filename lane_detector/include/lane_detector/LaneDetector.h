@@ -22,6 +22,8 @@ public:
 	void setRoiBottomLocation(const int bottom_rate);
 //ADDED
 	void setContiDetectPixel(const int continuous_detect_pixel);
+	void setLeftSteerFactor(const int left_steer_factor);
+	void setVehCenterPointXOffset(const int veh_center_point_x_offset);
 
 	int getWidth() const;
 	int getHeight() const;
@@ -36,6 +38,8 @@ public:
 	int getContiDetectPixel() const;
 	double getYawFactor() const;
 	double getLateralFactor() const;
+	int getLeftSteerFactor() const;
+	double getVehCenterPointXOffset() const;
 	double getOnceDetectTime() const;
 	double getAvgDetectTime() const;
 	cv::Mat getRoiColorImg() const;
@@ -99,14 +103,17 @@ protected:
 	// 라인 y 좌표 비율 컨테이너(0~100)
 	std::unique_ptr<int[]> detect_y_offset_arr_;
 
+	int veh_center_point_x_offset_ = 6;
+
 	// LaneDetector
 	int gray_bin_thres_ = 210;
 	double yaw_factor_ = 0.5;
 	double lateral_factor_ = 0.5;
+	int left_steer_factor_ = 1;
 #if RC_CAR
 	const int STEER_MAX_ANGLE_ = 45;
 #elif SCALE_PLATFORM
-	const int STEER_MAX_ANGLE_ = 27;
+	const int STEER_MAX_ANGLE_ = 26;
 #endif
 
 	// LaneDetector below all
@@ -132,6 +139,7 @@ protected:
 	double detect_avg_time_ = 0;
 
 	std::unique_ptr<LinePointDetector[]> line_point_detector_arr_;
+
 };
 
 #endif

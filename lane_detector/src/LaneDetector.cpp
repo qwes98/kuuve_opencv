@@ -40,6 +40,8 @@ void LaneDetector::setContiDetectPixel(const int continuous_detect_pixel)
   for(int i = 0; i < DETECT_LINE_COUNT_; i++)
     line_point_detector_arr_[i].setContiDetectPixel(continuous_detect_pixel);
 }
+void LaneDetector::setLeftSteerFactor(const int left_steer_factor) { left_steer_factor_ = left_steer_factor; }
+void LaneDetector::setVehCenterPointXOffset(const int veh_center_point_x_offset) { veh_center_point_x_offset_ = veh_center_point_x_offset; }
 
 
 
@@ -62,6 +64,8 @@ int LaneDetector::getRoiBottomLocation() const { return roi_bottom_location_; }
 int LaneDetector::getContiDetectPixel() const { return line_point_detector_arr_[0].getContiDetectPixel(); }
 double LaneDetector::getYawFactor() const { return yaw_factor_; }
 double LaneDetector::getLateralFactor() const { return lateral_factor_; }
+int LaneDetector::getLeftSteerFactor() const { return left_steer_factor_; }
+double LaneDetector::getVehCenterPointXOffset() const { return veh_center_point_x_offset_; }
 double LaneDetector::getOnceDetectTime() const { return once_detect_time_; }
 double LaneDetector::getAvgDetectTime() const { return detect_avg_time_; }
 cv::Mat LaneDetector::getRoiColorImg() const { return resized_img_; }
@@ -75,7 +79,7 @@ double LaneDetector::calculateYawError(const int index)
     throw_my_out_of_range(getOutOfRangeMsg(index, DETECT_LINE_COUNT_));
   }
 
-	const int dx = lane_middle_arr_[index].x - roi_binary_img_.cols / 2;
+	const int dx = lane_middle_arr_[index].x - (roi_binary_img_.cols / 2 + veh_center_point_x_offset_);
 	const int dy = roi_binary_img_.rows - lane_middle_arr_[index].y;
 	return atan2(dx, dy) * 180 / CV_PI;
 }
@@ -87,7 +91,7 @@ double LaneDetector::calculateLateralError(const int index)
     throw_my_out_of_range(getOutOfRangeMsg(index, DETECT_LINE_COUNT_));
   }
 
-	return lane_middle_arr_[index].x - roi_binary_img_.cols / 2;
+	return lane_middle_arr_[index].x - (roi_binary_img_.cols / 2 + veh_center_point_x_offset_);
 }
 
 void LaneDetector::calculateOnceDetectTime(const int64 start_time, const int64 finish_time)
@@ -119,7 +123,7 @@ void LaneDetector::visualizeLine(const int index) const
   }
 
 	line(resized_img_, cur_right_point_arr_[index] + Point(0, RESIZE_HEIGHT_ * (double)roi_top_location_ / 100), cur_left_point_arr_[index] + Point(0, RESIZE_HEIGHT_ * (double)roi_top_location_ / 100), Scalar(0, 255, 0), 5);
-	line(resized_img_, lane_middle_arr_[index] + Point(0, RESIZE_HEIGHT_ * (double)roi_top_location_ / 100), Point(RESIZE_WIDTH_ / 2, RESIZE_HEIGHT_ * (double)roi_bottom_location_ / 100), Scalar(0, 0, 255), 5);
+	line(resized_img_, lane_middle_arr_[index] + Point(0, RESIZE_HEIGHT_ * (double)roi_top_location_ / 100), Point(RESIZE_WIDTH_ / 2 + veh_center_point_x_offset_, RESIZE_HEIGHT_ * (double)roi_bottom_location_ / 100), Scalar(0, 0, 255), 5);
 }
 
 void LaneDetector::showImg() const
@@ -134,25 +138,38 @@ int LaneDetector::calculateSteerValue(const int center_steer_control_value, cons
 	int steer_control_value = 0;	// for parsing double value to int
 	const int steer_offset = max_steer_control_value - center_steer_control_value;  // center ~ max
 
-//TODO: Modify steering altorithm
-/*
 	steer_angle_ = yaw_factor_ * yaw_error_ + lateral_factor_ * lateral_error_;
 
-	if(steer_angle_ < STEER_MAX_ANGLE_ && steer_angle_ > (-1) * STEER_MAX_ANGLE_) {
-		steer_control_value = static_cast<int>(center_steer_control_value + (steer_offset / STEER_MAX_ANGLE_) * steer_angle_);
-	}
-	else if(steer_angle_ >= STEER_MAX_ANGLE_) {
+	double tmp_steer_value = center_steer_control_value + (steer_offset / STEER_MAX_ANGLE_) * steer_angle_;
+
+	steer_control_value = (int) (tmp_steer_value >= 0 ? tmp_steer_value + 0.5 : tmp_steer_value - 0.5 - left_steer_factor_);
+	cout << "origin steer value: " << (int) (tmp_steer_value > 0 ? tmp_steer_value + 0.5 : tmp_steer_value - 0.5) << endl;
+	cout << "left factor added steer value: " << steer_control_value << endl;
+
+	if(steer_control_value > STEER_MAX_ANGLE_) {
 		steer_control_value = center_steer_control_value + steer_offset;
 	}
-	else if(steer_angle_ <= (-1) * STEER_MAX_ANGLE_) {
+	else if(steer_control_value < (-1) * STEER_MAX_ANGLE_) {
 		steer_control_value = center_steer_control_value - steer_offset;
 	}
-  */
 
+#if DEBUG
+	cout << "yaw_value: " << yaw_error_ * yaw_factor_ << endl;
+	cout << "lateral_value: " << lateral_error_ * lateral_factor_ << endl;
+	cout << "cast result: " << steer_control_value << endl;
+
+#endif
+	steer_angle_ = steer_control_value; // for print angle
+
+/*
 	int tmp_control_value = yaw_error_ * yaw_factor_ + lateral_error_ * lateral_factor_;
 
-  if(yaw_error_ * yaw_factor_ < STEER_MAX_ANGLE_ && yaw_error_ * yaw_factor_ > (-1) * STEER_MAX_ANGLE_)
-  		steer_control_value = static_cast<int>(center_steer_control_value + steer_offset / STEER_MAX_ANGLE_ * (yaw_error_ * yaw_factor_) + lateral_error_ * lateral_factor_);
+  if(yaw_error_ * yaw_factor_ < STEER_MAX_ANGLE_ && yaw_error_ * yaw_factor_ > (-1) * STEER_MAX_ANGLE_) {
+		if(yaw_error_ * yaw_factor_ > 0)
+			steer_control_value = static_cast<int>(center_steer_control_value + steer_offset / STEER_MAX_ANGLE_ * (yaw_error_ * yaw_factor_) + lateral_error_ * lateral_factor_);
+  		if(yaw_error_ * yaw_factor_ < 0)
+			steer_control_value = static_cast<int>((center_steer_control_value + steer_offset / STEER_MAX_ANGLE_ * (yaw_error_ * yaw_factor_) + lateral_error_ * lateral_factor_) * left_steer_factor_);
+  }
   	else if(yaw_error_ * yaw_factor_ >= STEER_MAX_ANGLE_) {
   		steer_control_value = center_steer_control_value + steer_offset;
   		yaw_error_ = STEER_MAX_ANGLE_ / yaw_factor_;		// for print angle on console
@@ -161,12 +178,14 @@ int LaneDetector::calculateSteerValue(const int center_steer_control_value, cons
   		steer_control_value = center_steer_control_value - steer_offset;
   		yaw_error_ = (-1) * STEER_MAX_ANGLE_ / yaw_factor_;
   }
+  */
+
 
 	return steer_control_value;
 }
 
-// int LaneDetector::getRealSteerAngle() const { return steer_angle_; }
-int LaneDetector::getRealSteerAngle() const { return yaw_error_ * yaw_factor_; }
+int LaneDetector::getRealSteerAngle() const { return steer_angle_; }
+//int LaneDetector::getRealSteerAngle() const { return yaw_error_ * yaw_factor_; }
 
 // for testFunction
 bool LaneDetector::haveToResetLeftPoint(const int index) const
