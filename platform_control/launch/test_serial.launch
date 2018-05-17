@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<launch>
+	<node pkg="kuuve_platform_control" type="write_serial" name="write_serial" output="screen"/>
+	<node pkg="kuuve_platform_control" type="teleop_kuuve_key" name="teleop_kuuve_key" output="screen"> 
+		<param name="/speed" type="double" value="0.0"/> 
+	</node>
+</launch>
