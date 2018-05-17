@@ -39,11 +39,11 @@ bool CrosswalkStop::detectCrosswalk()
 double CrosswalkStop::getStopDistance() const { return STOP_DISTANCE_; }
 int CrosswalkStop::getStopTime() const { return STOP_TIME_; }
 
-bool CrosswalkStop::firstLocationDetected() const { return roi_binary_img_.at<uchar>(roi_binary_img_.rows * STOP_DISTANCE_, roi_binary_img_.cols * 3 / 8) >= gray_bin_thres_; }
+bool CrosswalkStop::firstLocationDetected() const { return roi_bin_img_from_gray_.at<uchar>(roi_bin_img_from_gray_.rows * STOP_DISTANCE_, roi_bin_img_from_gray_.cols * 3 / 8) >= gray_bin_thres_; }
 
-bool CrosswalkStop::secondLocationDetected() const { return roi_binary_img_.at<uchar>(roi_binary_img_.rows * STOP_DISTANCE_, roi_binary_img_.cols * 4 / 8) >= gray_bin_thres_; }
+bool CrosswalkStop::secondLocationDetected() const { return roi_bin_img_from_gray_.at<uchar>(roi_bin_img_from_gray_.rows * STOP_DISTANCE_, roi_bin_img_from_gray_.cols * 4 / 8) >= gray_bin_thres_; }
 
-bool CrosswalkStop::thirdLocationDetected() const { return roi_binary_img_.at<uchar>(roi_binary_img_.rows * STOP_DISTANCE_, roi_binary_img_.cols * 5 / 8) >= gray_bin_thres_; }
+bool CrosswalkStop::thirdLocationDetected() const { return roi_bin_img_from_gray_.at<uchar>(roi_bin_img_from_gray_.rows * STOP_DISTANCE_, roi_bin_img_from_gray_.cols * 5 / 8) >= gray_bin_thres_; }
 
 void CrosswalkStop::visualizeCircles() const
 {
