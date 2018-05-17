@@ -188,7 +188,9 @@ int l0_p3=15;
   cv::Point right_P2;
   cv::Point right_P3;
 
-  cv::Point forward_stop_point_;
+  cv::Point forward_stop_point1_;
+  cv::Point forward_stop_point2_;
+  cv::Point forward_stop_point3_;
 	//cv::Point reverse_stop_point_;
 
   LaneDetect linedetect;
@@ -206,6 +208,11 @@ int l0_p3=15;
   int OBSTACLE_DETECT_TIME = 10;
 
   double first_driving_yaw_factor = 1.0;
+
+  int left_steer_factor_ = 3;
+
+  int reverse_max_stay_time = 0;
+  int REVERSE_MAX_STAY_TIME = 10;
 
 
 };

@@ -50,8 +50,8 @@ void ParkingNode::actionCallback(const kuuve_parking::MissionPlannerGoalConstPtr
 void ParkingNode::obstacleCallback(const obstacle_detector::Obstacles data)
 {
 	obstacle_detector::CircleObstacle nearest_circle_obs;
-	nearest_circle_obs.center.x = data.circles[0].center.x;
-	for(int i = 1; i < data.circles.size(); i++) {
+	nearest_circle_obs.center.x = 100;
+	for(int i = 0; i < data.circles.size(); i++) {
 		if(circleObsIsInRoi(data.circles[i]) && circleObsIsNearThan(data.circles[i], nearest_circle_obs)) {
 			//nearest_circle_obs.center.x = data.circles[i].center.x;
 			//nearest_circle_obs.center.y = data.circles[i].center.y;
@@ -60,7 +60,7 @@ void ParkingNode::obstacleCallback(const obstacle_detector::Obstacles data)
 	}
 
 	obstacle_detector::SegmentObstacle nearest_segment_obs;
-	nearest_segment_obs = data.segments[0];
+	nearest_segment_obs.first_point.x = 100;
 	for(int i = 0; i < data.segments.size(); i++) {
 		if(segmentObsIsInRoi(data.segments[i]) && segmentObsIsNearThan(data.segments[i], nearest_segment_obs)) {
 			nearest_segment_obs = data.segments[i];
@@ -68,6 +68,16 @@ void ParkingNode::obstacleCallback(const obstacle_detector::Obstacles data)
 	}
 
 	double nearest_obs_dist = calNearestObsDist(nearest_circle_obs, nearest_segment_obs);
+
+	/*
+	cout << "nearest_circle_obs: " << nearest_circle_obs.center << endl;
+	cout << "nearest_segment_obs: " << nearest_segment_obs.first_point << endl;
+
+	if(nearest_circle_obs.center.x == 100)
+		cout << "nearest_circle_obs x must not be 100!!(initial value)" << endl;
+	if(nearest_segment_obs.first_point.x == 100)
+		cout << "nearest_segment_obs x must not be 100!!(initial value)" << endl;
+		*/
 
 	if(nearest_obs_dist < this_room_dist_thres_) // 1번 주차공간에 장애물 있음
 		instant_this_room_obs = true;
@@ -77,7 +87,7 @@ void ParkingNode::obstacleCallback(const obstacle_detector::Obstacles data)
 
 bool ParkingNode::circleObsIsInRoi(const obstacle_detector::CircleObstacle& obs)
 {
-	return (obs.center.y < 0 && obs.center.y > (-1) * obstacle_y_thres_) && (obs.center.x > 0 && obs.center.x < (-1) * obstacle_x_thres_);
+	return (obs.center.y < 0 && obs.center.y > (-1) * obstacle_y_thres_) && (obs.center.x > 0 && obs.center.x < obstacle_x_thres_);
 }
 
 bool ParkingNode::circleObsIsNearThan(const obstacle_detector::CircleObstacle& obs1, const obstacle_detector::CircleObstacle& obs2)
@@ -90,7 +100,7 @@ bool ParkingNode::segmentObsIsInRoi(const obstacle_detector::SegmentObstacle& ob
 	geometry_msgs::Point center;
 	center.x = (obs.first_point.x + obs.last_point.x) / 2;
 	center.y = (obs.first_point.y + obs.last_point.y) / 2;
-	return (center.y < 0 && center.y > (-1) * obstacle_y_thres_) && (center.x > 0 && center.x < (-1) * obstacle_x_thres_);
+	return (center.y < 0 && center.y > (-1) * obstacle_y_thres_) && (center.x > 0 && center.x < obstacle_x_thres_);
 }
 
 bool ParkingNode::segmentObsIsNearThan(const obstacle_detector::SegmentObstacle& obs1, const obstacle_detector::SegmentObstacle& obs2)
@@ -139,6 +149,9 @@ void ParkingNode::getRosParamForInitiation()
 	nh_.getParam("reverse_max_turning_angle_thres", reverse_max_turning_angle_thres);
 	nh_.getParam("reverse_stop_angle_thres", reverse_stop_angle_thres);
 	nh_.getParam("obstacle_detect_time", OBSTACLE_DETECT_TIME);
+	nh_.getParam("detect_y_offset", LINE);
+	nh_.getParam("line_length", LINE_LENGTH);
+	nh_.getParam("reverse_max_stay_time", REVERSE_MAX_STAY_TIME);
 }
 
 void ParkingNode::getRosParamForUpdate()
@@ -151,8 +164,6 @@ void ParkingNode::getRosParamForUpdate()
 	nh_.getParam("go_back_stop_time", GO_BACK_STOP_TIME);
 	nh_.getParam("roi_top_location", roi_top_location);
 	nh_.getParam("roi_bottom_location", roi_bottom_location);
-	nh_.getParam("detect_y_offset", LINE);
-	nh_.getParam("line_length", LINE_LENGTH);
 	nh_.getParam("forward_stop_x_offset", forward_stop_x_offset_);
 	nh_.getParam("forward_stop_y_offset", forward_stop_y_offset_);
 	// nh_.getParam("reverse_stop_x_offset_", reverse_stop_x_offset_);
@@ -163,6 +174,7 @@ void ParkingNode::getRosParamForUpdate()
 	nh_.getParam("obstacle_x_thres", obstacle_x_thres_);
 	nh_.getParam("obstacle_y_thres", obstacle_y_thres_);
 	nh_.getParam("this_room_dist_thres", this_room_dist_thres_);
+	nh_.getParam("left_steer_factor", left_steer_factor_);
 
 	int yaw_factor_tmp = 0;
 	nh_.getParam("yaw_factor", yaw_factor_tmp);
@@ -183,23 +195,27 @@ void ParkingNode::getRosParamForUpdate()
 
 int ParkingNode::calculateSteerValue(const int center_steer_control_value, const int max_steer_control_value)
 {
-	int steer_control_value = 0;// for parsing double value to int
+	int steer_control_value = 0;	// for parsing double value to int
 	const int steer_offset = max_steer_control_value - center_steer_control_value;  // center ~ max
-	// cout << "steer_offset: " << steer_offset << endl;
 
-	int control_value = yaw_error * yaw_factor + lateral_error * lateral_factor;
- if(control_value < STEER_MAX_ANGLE_ && control_value > (-1) * STEER_MAX_ANGLE_) {
-	steer_control_value = static_cast<int>(center_steer_control_value + steer_offset / STEER_MAX_ANGLE_ * (yaw_error * yaw_factor) + lateral_error * lateral_factor);
-	cout << "steer correct" << endl;
- }
-else if(control_value >= STEER_MAX_ANGLE_) {
-	steer_control_value = center_steer_control_value + steer_offset;
-	yaw_error = STEER_MAX_ANGLE_ / yaw_factor;// 		for print yaw_error on console
-}
-else if(control_value <= (-1) * STEER_MAX_ANGLE_) {
+	double steer_angle = yaw_factor * yaw_error + lateral_factor * lateral_error;
+
+	double tmp_steer_value = center_steer_control_value + (steer_offset / STEER_MAX_ANGLE_) * steer_angle;
+
+	steer_control_value = (int) (tmp_steer_value >= 0 ? tmp_steer_value + 0.5 : tmp_steer_value - 0.5);
+	steer_control_value -= left_steer_factor_;	// parking use left_steer_factor_ in all steer value
+
+
+	if(steer_control_value > STEER_MAX_ANGLE_) {
+		steer_control_value = center_steer_control_value + steer_offset;
+	}
+	else if(steer_control_value < (-1) * STEER_MAX_ANGLE_) {
 		steer_control_value = center_steer_control_value - steer_offset;
-		yaw_error = (-1) * STEER_MAX_ANGLE_ / yaw_factor;
-  }
+	}
+	
+	cout << "origin steer value: " << (int) (tmp_steer_value > 0 ? tmp_steer_value + 0.5 : tmp_steer_value - 0.5) << endl;
+	cout << "left factor added steer value: " << steer_control_value << endl;
+
 
 	return steer_control_value;
 }
@@ -276,7 +292,7 @@ void ParkingNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 		double aa = threshold(hsv_s, a, hsv_s_bin_thres, 255, THRESH_BINARY);
 
 		bi = b;
-	  bi_object = a + b; // 사물 디택트를 위함.
+		  bi_object = a + b; // 사물 디택트를 위함.
 
 		////////////////////////////
 
@@ -315,13 +331,15 @@ void ParkingNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 
 		} else {
 
-		right_P2.x = linedetect.find_RN_x(bi, r0_p2, LINE + reverse_detect_offset_, THRESHOLD);
-		right_P2.y =  LINE + reverse_detect_offset_;
-		r0_p2 = right_P2.x;
+			if(!turning_finish_flag_ || reverse_max_stay_time > REVERSE_MAX_STAY_TIME) {
+				right_P2.x = linedetect.find_RN_x(bi, r0_p2, LINE + reverse_detect_offset_, THRESHOLD);
+				right_P2.y =  LINE + reverse_detect_offset_;
+				r0_p2 = right_P2.x;
 
-		right_P3.x = linedetect.find_RN_x(bi, r0_p3, LINE + reverse_detect_offset_ + LINE_LENGTH, THRESHOLD);
-		right_P3.y =  LINE + reverse_detect_offset_ +  LINE_LENGTH;
-		r0_p3 = right_P3.x;
+				right_P3.x = linedetect.find_RN_x(bi, r0_p3, LINE + reverse_detect_offset_ + LINE_LENGTH, THRESHOLD);
+				right_P3.y =  LINE + reverse_detect_offset_ +  LINE_LENGTH;
+				r0_p3 = right_P3.x;
+			}
 		}
 
 	if(ready_go_back == false)
@@ -333,21 +351,31 @@ void ParkingNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 	}
 	if(ready_go_back && yaw_error < YAW_ERROR)
 	{
-		forward_stop_point_.x = right_P2.x - forward_stop_x_offset_ ;
-		forward_stop_point_.y = right_P2.y - forward_stop_y_offset_ ;
+		forward_stop_point1_.x = right_P2.x - forward_stop_x_offset_ ;
+		forward_stop_point1_.y = right_P2.y - forward_stop_y_offset_ ;
+
+		forward_stop_point2_.x = right_P2.x - forward_stop_x_offset_ + 1;
+		forward_stop_point2_.y = right_P2.y - forward_stop_y_offset_ ;
+
+		forward_stop_point3_.x = right_P2.x - forward_stop_x_offset_ + 2;
+		forward_stop_point3_.y = right_P2.y - forward_stop_y_offset_ ;
+
 		if (times == 0)
 		{
-			if (bi.at<uchar>(forward_stop_point_.y, forward_stop_point_.x) == 0 && ready > READY)
+			if (bi.at<uchar>(forward_stop_point1_.y, forward_stop_point1_.x) == 0 
+				&& bi.at<uchar>(forward_stop_point2_.y, forward_stop_point2_.x) == 0 
+				&& bi.at<uchar>(forward_stop_point3_.y, forward_stop_point3_.x) == 0 
+				&& ready > READY)
 			{
 				cout << "(1번 주차공간) 주차하고 정지하세요 " << endl;
 				times = times + 1;
 				steer_value = 0;
 				makeControlMsg(steer_value,0);
 				control_pub.publish(control_msg);
-				ros::Duration(3).sleep();
+				ros::Duration(11).sleep();
 
 				go_back = true;
-				cout << "(1번 주차공간) times = " << times << "   조향각 : " << yaw_error << endl;
+				cout << "(1번 주차공간) times = " << times << endl;
 				////////// 여기에 후진 명령 내려야 한다.
 			}
 			ready = ready + 1;
@@ -371,9 +399,10 @@ void ParkingNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 		*/
 		else {
 			steer_value = calculateSteerValue(0,26);
-			makeControlMsg(steer_value * first_driving_yaw_factor, throttle);
+			// makeControlMsg(steer_value * first_driving_yaw_factor, throttle);
+			makeControlMsg(steer_value, throttle);
 		}
-		cout << "(1번 주차공간) 전진 ready : " << ready << "    조향각 : " << yaw_error << endl;
+		cout << "(1번 주차공간) 전진 ready : " << ready << endl;
 
 	}
 	if(go_back == true)
@@ -382,8 +411,7 @@ void ParkingNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 		int dx = right_P3.x - right_P2.x;
 		yaw_error = atan2(dx, dy) * 180 / CV_PI;
 		// 후진중 우찌 되면 정지한다.
-	  // LINE = 400 ; // 이거 바꿔야 한다.
-		cout <<"(1번 주차공간) 후진중 입니다.       " << "조향각 : " << yaw_error << endl;
+		cout <<"(1번 주차공간) 후진중 입니다.       " << endl;
 		lateral_error = right_P2.x;
 
 		ready3++;
@@ -404,7 +432,8 @@ void ParkingNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 
 		if(turning_finish_flag_)
 		{
-			if(yaw_error < reverse_stop_angle_thres) {
+			reverse_max_stay_time++;
+			if(yaw_error < reverse_stop_angle_thres || mission_cleared_) {
 				steer_value = 0;
 				makeControlMsg(steer_value, 0);
 				cout << "(1번공간 주차 미션 끝)  인코스 차선인식 노드를 켜주세요"<<endl;
@@ -417,7 +446,7 @@ void ParkingNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 	/*
 		if (go_back == false)
 		{
-			if (!(bi.at<uchar>(forward_stop_point_.y, forward_stop_point_.x) == 255) && readyIsFinished())	// ready_timer_ -> 처음에는 0, 프레임이 들어올수록 1씩 증가 => for 안정적
+			if (!(bi.at<uchar>(forward_stop_point1_.y, forward_stop_point1_.x) == 255) && readyIsFinished())	// ready_timer_ -> 처음에는 0, 프레임이 들어올수록 1씩 증가 => for 안정적
 			{
 				cout << " ���� ���� �ϼ��� " << endl;
 				steer_value = 0;
@@ -436,8 +465,8 @@ void ParkingNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 			steer_value = calculateSteerValue(0, 26);
 			makeControlMsg(steer_value, throttle);
 
-			cout << "forward_stop_point_: " << forward_stop_point_ << endl;
-			circle(frame, forward_stop_point_, 1, Scalar(0, 0, 255), 5);
+			cout << "forward_stop_point1_: " << forward_stop_point1_ << endl;
+			circle(frame, forward_stop_point1_, 1, Scalar(0, 0, 255), 5);
 
 		}
 	   */
@@ -513,51 +542,55 @@ void ParkingNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 				 }
 				 else
 				 {
-					 if(framecount_new_new_2_L < 1)
-					 {
-					 	l0_p2 = r0_p2 - 10;
-						l0_p2 = linedetect.find_L0_x2(bi, LINE + reverse_detect_offset_, &framecount_new_new_2_L, l0_p2);
-					 }
-					 if(framecount_new_new_3_L < 1)
-					 {
-					 	l0_p3 = r0_p3 - 10;
-						l0_p3 = linedetect.find_L0_x2(bi, LINE + reverse_detect_offset_ + LINE_LENGTH, &framecount_new_new_3_L, l0_p3);
-					 }
-					 if (yaw_error > turning_angle_thres_ && ready4 > READY4)
-					 {
-						 if(!out_of_room2) {
+					 if(!turning_finish_flag_ || reverse_max_stay_time > REVERSE_MAX_STAY_TIME) {
+						 if(framecount_new_new_2_L < 1)
+						 {
 							l0_p2 = r0_p2 - 10;
-							l0_p3 = r0_p3 - 10;
+							l0_p2 = linedetect.find_L0_x2(bi, LINE + reverse_detect_offset_, &framecount_new_new_2_L, l0_p2);
 						 }
-						 out_of_room2 = true;
-					 }
-					 if (out_of_room2)
-					 {
-						left_P2.x = linedetect.find_LN_x(bi, l0_p2, LINE + reverse_detect_offset_ + 0, THRESHOLD);
-						left_P2.y = LINE + reverse_detect_offset_ + 0;
-						l0_p2 = left_P2.x;
+						 if(framecount_new_new_3_L < 1)
+						 {
+							l0_p3 = r0_p3 - 10;
+							l0_p3 = linedetect.find_L0_x2(bi, LINE + reverse_detect_offset_ + LINE_LENGTH, &framecount_new_new_3_L, l0_p3);
+						 }
+						 if (yaw_error > reverse_max_turning_angle_thres && ready4 > READY4)
+						 {
+							 if(!out_of_room2) {
+								l0_p2 = r0_p2 - 10;
+								l0_p3 = r0_p3 - 10;
+							 }
+							 out_of_room2 = true;
+						 }
+						 if (out_of_room2 )
+						 {
+							 if(reverse_max_stay_time > REVERSE_MAX_STAY_TIME) {
+								left_P2.x = linedetect.find_LN_x(bi, l0_p2, LINE + reverse_detect_offset_ + 0, THRESHOLD);
+								left_P2.y = LINE + reverse_detect_offset_ + 0;
+								l0_p2 = left_P2.x;
 
-						left_P3.x = linedetect.find_LN_x(bi, l0_p3, LINE + reverse_detect_offset_ + LINE_LENGTH + 0, THRESHOLD);
-						left_P3.y = LINE + reverse_detect_offset_ + LINE_LENGTH + 0;
-						l0_p3 = left_P3.x;
-						 // cout << "left_P2" << left_P2 << endl;
-						 // cout << "left_P3" << left_P3 << endl;
-					 }
-	/////////////
-	//
-					else {
-					if (framecount_new_new_2_R < 1)	r0_p2 = linedetect.find_next_R0_x(bi, LINE + reverse_detect_offset_, &framecount_new_new_2_R, l0_p2, l0_p2 + OFFSET);
-					if (framecount_new_new_3_R < 1)	r0_p3 = linedetect.find_next_R0_x(bi, LINE + reverse_detect_offset_ + LINE_LENGTH, &framecount_new_new_3_R, l0_p3, l0_p3 + OFFSET);
+								left_P3.x = linedetect.find_LN_x(bi, l0_p3, LINE + reverse_detect_offset_ + LINE_LENGTH + 0, THRESHOLD);
+								left_P3.y = LINE + reverse_detect_offset_ + LINE_LENGTH + 0;
+								l0_p3 = left_P3.x;
+							 // cout << "left_P2" << left_P2 << endl;
+							 // cout << "left_P3" << left_P3 << endl;
+							 }
+						 }
+		/////////////
+		//
+						else {
+							if (framecount_new_new_2_R < 1)	r0_p2 = linedetect.find_next_R0_x(bi, LINE + reverse_detect_offset_, &framecount_new_new_2_R, l0_p2, l0_p2 + OFFSET);
+							if (framecount_new_new_3_R < 1)	r0_p3 = linedetect.find_next_R0_x(bi, LINE + reverse_detect_offset_ + LINE_LENGTH, &framecount_new_new_3_R, l0_p3, l0_p3 + OFFSET);
 
-					right_P2.x = linedetect.find_RN_x(bi, r0_p2, LINE + reverse_detect_offset_, THRESHOLD);
-					  right_P2.y =  LINE + reverse_detect_offset_;
-					r0_p2 = right_P2.x;
+							right_P2.x = linedetect.find_RN_x(bi, r0_p2, LINE + reverse_detect_offset_, THRESHOLD);
+							  right_P2.y =  LINE + reverse_detect_offset_;
+							r0_p2 = right_P2.x;
 
-					right_P3.x = linedetect.find_RN_x(bi, r0_p3, LINE + reverse_detect_offset_ + LINE_LENGTH, THRESHOLD);
-					right_P3.y =  LINE + reverse_detect_offset_ +  LINE_LENGTH;
-					r0_p3 = right_P3.x;
-					///////
-					 }
+							right_P3.x = linedetect.find_RN_x(bi, r0_p3, LINE + reverse_detect_offset_ + LINE_LENGTH, THRESHOLD);
+							right_P3.y =  LINE + reverse_detect_offset_ +  LINE_LENGTH;
+							r0_p3 = right_P3.x;
+							///////
+						 }
+					}
 				 }
 
 					if (ready_go_back2 == false)
@@ -570,13 +603,21 @@ void ParkingNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 
 					if (ready_go_back2 && yaw_error < YAW_ERROR)
 					{
-						forward_stop_point_.x = right_P2.x - forward_stop_x_offset_;
-						forward_stop_point_.y = right_P2.y - forward_stop_y_offset_;
+						forward_stop_point1_.x = right_P2.x - forward_stop_x_offset_ ;
+						forward_stop_point1_.y = right_P2.y - forward_stop_y_offset_ ;
 
+						forward_stop_point2_.x = right_P2.x - forward_stop_x_offset_ + 1;
+						forward_stop_point2_.y = right_P2.y - forward_stop_y_offset_ ;
+
+						forward_stop_point3_.x = right_P2.x - forward_stop_x_offset_ + 2;
+						forward_stop_point3_.y = right_P2.y - forward_stop_y_offset_ ;
 
 						if (times2 == 0)
 						{
-							if (!(bi.at<uchar>(forward_stop_point_.y, forward_stop_point_.x) == 255) && ready2 > READY2)
+							if (bi.at<uchar>(forward_stop_point1_.y, forward_stop_point1_.x) == 0 
+								&& bi.at<uchar>(forward_stop_point2_.y, forward_stop_point2_.x) == 0 
+								&& bi.at<uchar>(forward_stop_point3_.y, forward_stop_point3_.x) == 0 
+								&& ready2 > READY2)
 							{
 								cout << "(2번 주차공간) 주차하고 정지하세요 " << endl;
 								times2 = times2 + 1;
@@ -584,7 +625,7 @@ void ParkingNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 								steer_value = 0;
 								makeControlMsg(steer_value,0);
 								control_pub.publish(control_msg);
-								ros::Duration(3).sleep();
+								ros::Duration(11).sleep();
 								cout << "(2번 주차공간)  times = " << times2 << "   조향각 : " << yaw_error << endl;
 							}
 							ready2 = ready2 + 1;
@@ -643,6 +684,7 @@ void ParkingNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 
 						if(turning_finish_flag_)
 						{
+							reverse_max_stay_time++;
 							if(yaw_error < reverse_stop_angle_thres) {
 								steer_value = 0;
 								makeControlMsg(steer_value, 0);
@@ -678,7 +720,7 @@ void ParkingNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 					yaw_error = atan2(dx, dy) * 180 / CV_PI;
 					steer_value = calculateSteerValue(0,26);
 					makeControlMsg(steer_value, throttle);
-					cout << "(2번 주차공간)  다음 주차공간 GO :  " << next_room_time << "   조향각 : " << yaw_error<< endl;
+					cout << "(2번 주차공간)  다음 주차공간 GO :  " << endl;
 				}
 			}
 		int64 t2 = getTickCount();
@@ -687,7 +729,7 @@ void ParkingNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 		sum_ += ms;
 		avg = sum_ / temp;
 
-		cout << "it took : " << ms << "ms." << "���� : " << avg << " �ʴ� ó�� �����Ӽ� : " << 1000 / avg << "  ���Ⱒ : " << yaw_error << endl;
+		cout << "it took : " << ms << "ms." << "���� : " << avg << " �ʴ� ó�� �����Ӽ� : " << 1000 / avg << endl;
 
 	/*
 		line(frame, right_P2 , right_P3 , Scalar(0, 255, 0), 5);
@@ -701,7 +743,11 @@ void ParkingNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 			if (this_room == true)
 			{
 				line(frame, right_P2, right_P3, Scalar(0, 255, 0), 5);
-				if (ready_go_back && yaw_error < YAW_ERROR) circle(frame, forward_stop_point_, 1, Scalar(0, 0, 255), 5);
+				if (ready_go_back && yaw_error < YAW_ERROR) {
+					circle(frame, forward_stop_point1_, 1, Scalar(0, 0, 255), 5);
+					circle(frame, forward_stop_point2_, 1, Scalar(0, 0, 255), 5);
+					circle(frame, forward_stop_point3_, 1, Scalar(0, 0, 255), 5);
+				}
 				circle(frame, obstract, 1, Scalar(255, 0, 0), 5);
 				imshow("gray_binary", b);
 				imshow("hsv_s_binary", a);
@@ -713,7 +759,11 @@ void ParkingNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 			{
 				if (next_room_time > NEXT_ROOM_TIME)
 				{
-					if (ready_go_back2 && yaw_error < YAW_ERROR) circle(frame, forward_stop_point_, 1, Scalar(0, 0, 255), 5);
+					if (ready_go_back2 && yaw_error < YAW_ERROR) { 
+						circle(frame, forward_stop_point1_, 1, Scalar(0, 0, 255), 5);
+						circle(frame, forward_stop_point2_, 1, Scalar(0, 0, 255), 5);
+						circle(frame, forward_stop_point3_, 1, Scalar(0, 0, 255), 5);
+					}
 					if(out_of_room2)
 						line(frame, left_P2, left_P3, Scalar(0, 255, 0), 5);
 					else

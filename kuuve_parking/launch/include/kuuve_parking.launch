@@ -2,25 +2,28 @@
 	<node pkg="kuuve_parking" type="kuuve_parking" name="kuuve_parking">
 		<param name="resize_width" value="480" />
 		<param name="resize_height" value="270" />
-
-		<param name="steer_max_angle" value="26" />
-		<param name="gray_bin_thres" value="190" />
-		<param name="hsv_s_bin_thres" value="150" />
+<param name="steer_max_angle" value="26" /> <param name="gray_bin_thres" value="190" />
+		<param name="hsv_s_bin_thres" value="140" />
 
 		<!-- pixel value -->
 		<!-- y_offset = front point y offset (P2) -->
-		<param name="detect_y_offset" value="70" />
-		<param name="line_length" value="10" />
+		<param name="detect_y_offset" value="150" />
+		<param name="line_length" value="20" />
 
-		<param name="reverse_detect_offset" value="310" />
+		<param name="reverse_detect_offset" value="250" />
 
-		<param name="forward_stop_x_offset" value="4" />
-		<param name="forward_stop_y_offset" value="25" />
+		<!-- room1 parking
+		<param name="forward_stop_x_offset" value="2" />
+		<param name="forward_stop_y_offset" value="40" />
+		-->
+		<!-- room2 parking -->
+		<param name="forward_stop_x_offset" value="1" />
+		<param name="forward_stop_y_offset" value="40" />
 		<!-- param name="reverse_stop_x_offset" value="-40" /-->
 		<!--param name="reverse_stop_y_offset" value="900" /-->
 
 		<!-- factor 0 ~ 100 -->
-		<param name="yaw_factor" value="100" />
+		<param name="yaw_factor" value="160" />
 		<param name="lateral_factor" value="0" />
 		<param name="first_driving_yaw_factor" value="300" />
 
@@ -30,9 +33,9 @@
 
 		<!-- param name="go_back_stop_time" value="200" /-->
 		<param name="turning_angle_thres" value="20" />
-		<param name="forward_max_turning_angle_thres" value="10" />
+		<param name="forward_max_turning_angle_thres" value="4" />
 		<param name="reverse_max_turning_angle_thres" value="15" />
-		<param name="reverse_stop_angle_thres" value="15" />
+		<param name="reverse_stop_angle_thres" value="17" />
 
 		<!-- 0 is a top and 100 is a bottom -->
 		<param name="roi_top_location" value="20" />
@@ -41,9 +44,9 @@
 		<remap from="kuuve_parking/ackermann" to="ackermann" />
 
 		<!-- obstract -->
-		<param name="obstacle_x_thres" type="double" value="3.0" />
+		<param name="obstacle_x_thres" type="double" value="6.0" />
 		<param name="obstacle_y_thres" type="double" value="3.0" />
-		<param name="this_room_dist_thres" type="double" value="2.0" />
+		<param name="this_room_dist_thres" type="double" value="3.5" />
 		<param name="obstacle_detect_time" value="10" />
 
 
@@ -56,11 +59,12 @@
 		<param name="ready3" value="80" />
 		<param name="ready4" value="120" />
 
-		<param name="next_room_time" value="30" />
+		<param name="next_room_time" value="50" />
 
 		<param name="next_room_offset" value="40" />
 
-		<!--param name="gaussian_param" value="1" /-->
+		<param name="left_steer_factor" value="2" />
 
+		<param name="reverse_max_stay_time" value="90" />
 	</node>
 </launch>
