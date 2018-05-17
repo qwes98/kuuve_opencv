@@ -79,8 +79,8 @@ private:
 
   int STEER_MAX_ANGLE_ = 26;
 
-  int gray_bin_thres = 180;
-  int hsv_s_bin_thres = 180;
+  int gray_bin_thres = 170;
+  int hsv_s_bin_thres = 110;
 
   // 0 ~ 100
   int roi_top_location = 0;

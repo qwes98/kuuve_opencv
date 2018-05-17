@@ -106,7 +106,7 @@ protected:
 	int veh_center_point_x_offset_ = 6;
 
 	// LaneDetector
-	int gray_bin_thres_ = 210;
+	int gray_bin_thres_ = 170;
 	double yaw_factor_ = 0.5;
 	double lateral_factor_ = 0.5;
 	int left_steer_factor_ = 1;

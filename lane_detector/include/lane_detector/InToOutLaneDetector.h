@@ -31,7 +31,7 @@ protected:
   cv::Mat roi_bin_img_from_gray_;
   cv::Mat roi_bin_img_from_hsv_s_;
 
-  int hsv_s_bin_thres_;
+  int hsv_s_bin_thres_ = 110;
 
   int left_detect_offset_;
   int right_detect_offset_;

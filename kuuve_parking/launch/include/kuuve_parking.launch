@@ -2,8 +2,10 @@
 	<node pkg="kuuve_parking" type="kuuve_parking" name="kuuve_parking">
 		<param name="resize_width" value="480" />
 		<param name="resize_height" value="270" />
-<param name="steer_max_angle" value="26" /> <param name="gray_bin_thres" value="190" />
-		<param name="hsv_s_bin_thres" value="140" />
+		<param name="steer_max_angle" value="26" /> 
+
+		<param name="gray_bin_thres" value="170" />
+		<param name="hsv_s_bin_thres" value="110" />
 
 		<!-- pixel value -->
 		<!-- y_offset = front point y offset (P2) -->
