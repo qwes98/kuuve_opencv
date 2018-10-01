@@ -1,5 +1,6 @@
 #include <cmath>
 #include <string>
+#include <vector>
 #include <stdexcept>
 #include "lane_detector/LaneDetectorNode.h"
 
@@ -147,41 +148,52 @@ void LaneDetectorNode::parseRawimg(const sensor_msgs::ImageConstPtr& ros_img, Ma
 
 void LaneDetectorNode::getRosParamForConstValue(int& width, int& height, int& steer_max_angle, int& detect_line_count)
 {
-	nh_.getParam("resize_width", width);
-	nh_.getParam("resize_height", height);
-	nh_.getParam("steer_max_angle", steer_max_angle);
-	nh_.getParam("detect_line_count", detect_line_count);
+	nh_.getParam("/image/resize/width", width);
+	nh_.getParam("/image/resize/height", height);
+	nh_.getParam("/hardware_control/platform/steer_max_angle", steer_max_angle);
+	nh_.getParam("/detect/line_count", detect_line_count);
 }
 
 void LaneDetectorNode::getRosParamForUpdate()
 {
-	int paramArr[9];
-	nh_.getParam("gray_bin_thres", paramArr[0]);
-	nh_.getParam("hsv_s_bin_thres", paramArr[1]);
-	nh_.getParam("left_detect_offset", paramArr[2]);
-	nh_.getParam("right_detect_offset", paramArr[3]);
-	nh_.getParam("yaw_factor", paramArr[4]);
-	nh_.getParam("lateral_factor", paramArr[5]);
-	nh_.getParam("roi_top_location", paramArr[6]);
-	nh_.getParam("roi_bottom_location", paramArr[7]);
-	nh_.getParam("continuous_detect_pixel", paramArr[8]);
-	nh_.getParam("throttle", throttle_);
+	int paramArr[7];
+	nh_.getParam("/image/binary_thres/gray", paramArr[0]);
+	nh_.getParam("/image/binary_thres/hsv_s", paramArr[1]);
+	nh_.getParam("/detect/offset/left", paramArr[2]);
+	nh_.getParam("/detect/offset/right", paramArr[3]);
+	nh_.getParam("/image/roi/top_location", paramArr[4]);
+	nh_.getParam("/image/roi/bottom_location", paramArr[5]);
+	nh_.getParam("/detect/continuous_pixel", paramArr[6]);
+
+	double factor[2];
+	nh_.getParam("/hardware_control/factor/yaw", factor[0]);
+	nh_.getParam("/hardware_control/factor/lateral", factor[1]);
+	nh_.getParam("/hardware_control/platform/throttle", throttle_);
 
 	lanedetector_ptr_->setGrayBinThres(paramArr[0]);
 	lanedetector_ptr_->setHsvSBinThres(paramArr[1]);
 	lanedetector_ptr_->setLeftDetectOffset(paramArr[2]);
 	lanedetector_ptr_->setRightDetectOffset(paramArr[3]);
-	lanedetector_ptr_->setYawFactor((double)paramArr[4] / 100);
-	lanedetector_ptr_->setLateralFactor((double)paramArr[5] / 100);
-	lanedetector_ptr_->setRoiTopLocation(paramArr[6]);
-	lanedetector_ptr_->setRoiBottomLocation(paramArr[7]);
-	lanedetector_ptr_->setContiDetectPixel(paramArr[8]);
+	lanedetector_ptr_->setRoiTopLocation(paramArr[4]);
+	lanedetector_ptr_->setRoiBottomLocation(paramArr[5]);
+	lanedetector_ptr_->setContiDetectPixel(paramArr[6]);
+
+	lanedetector_ptr_->setYawFactor(factor[0]);
+	lanedetector_ptr_->setLateralFactor(factor[1]);
+
+	vector<int> detect_y_offset;
+	nh_.getParam("/detect/y_offset", detect_y_offset);
 
 	int detect_line_count = lanedetector_ptr_->getDetectLineCount();
+
+	if(detect_line_count != detect_y_offset.size())
+	{
+		// FIXME: throw exception? or assert? 
+		return ;
+	}
+
 	for(int i = 0; i < detect_line_count; i++) {
-		int y_offset = 0;
-		nh_.getParam("detect_y_offset_" + to_string(i+1), y_offset);
-		lanedetector_ptr_->setDetectYOffset(y_offset, i);
+		lanedetector_ptr_->setDetectYOffset(detect_y_offset[i], i);
 	}
 }
 
