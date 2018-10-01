@@ -4,7 +4,7 @@ project(vision_narrow_drive)
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_compile_options(-std=c++11)
 
-set(OpenCV_DIR /opt/ros/kinetic/share/OpenCV-3.3.1)
+set(OpenCV_DIR /opt/ros/kinetic/share/OpenCV-3.3.1-dev)
 
 find_package(catkin REQUIRED COMPONENTS
 	cv_bridge
