@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<package format="2">
+	<name>kuuve_opencv</name>
+	<version>0.0.0</version>
+	<description>A set of packages that include lane detectors, crosswal stop, parking.</description>
+
+	<maintainer email="qwes8873@gmail.com">Jiwon</maintainer>
+
+	<license>MIT</license>
+
+	<author email="qwes8873@gmail.com">Jiwon</author>
+
+	<buildtool_depend>catkin</buildtool_depend>
+
+	<exec_depend>crosswalk_stop</exec_depend>
+	<exec_depend>lane_detector</exec_depend>
+	<exec_depend>vision_static_avoidance</exec_depend>
+	<exec_depend>vision_narrow_drive</exec_depend>
+	<exec_depend>kuuve_control</exec_depend>
+	<exec_depend>kuuve_parking</exec_depend>
+
+	<export>
+		<metapackage/>
+	</export>
+</package>
