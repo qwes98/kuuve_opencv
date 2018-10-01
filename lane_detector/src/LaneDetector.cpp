@@ -64,8 +64,8 @@ double LaneDetector::getYawFactor() const { return yaw_factor_; }
 double LaneDetector::getLateralFactor() const { return lateral_factor_; }
 double LaneDetector::getOnceDetectTime() const { return once_detect_time_; }
 double LaneDetector::getAvgDetectTime() const { return detect_avg_time_; }
-cv::Mat LaneDetector::getRoiColorImg() const { return resized_img_; }
-cv::Mat LaneDetector::getRoiBinaryImg() const { return roi_binary_img_; }
+void LaneDetector::getRoiColorImg(Mat& img) { img = resized_img_; }
+void LaneDetector::getRoiBinaryImg(Mat& img) { img = roi_binary_img_; }
 
 
 double LaneDetector::calculateYawError(const int index)

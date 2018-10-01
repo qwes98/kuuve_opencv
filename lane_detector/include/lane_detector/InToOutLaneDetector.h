@@ -15,8 +15,8 @@ public:
   int getHsvSBinThres() const;
   int getLeftDetectOffset() const;
   int getRightDetectOffset() const;
-  cv::Mat getRoiGrayBinImg() const;
-  cv::Mat getRoiHsvSBinImg() const;
+  void getRoiGrayBinImg(cv::Mat& img);
+  void getRoiHsvSBinImg(cv::Mat& img);
 
 	virtual void cvtToRoiBinaryImg(const cv::Point& left_top, const cv::Size& roi_size);
 

@@ -46,7 +46,7 @@ void LaneDetectorNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 {
 	Mat raw_img;
 	try{
-		raw_img = parseRawimg(image);
+		parseRawimg(image, raw_img);
 	} catch(const cv_bridge::Exception& e) {
 		ROS_ERROR("cv_bridge exception: %s", e.what());
 		return ;
@@ -80,25 +80,29 @@ void LaneDetectorNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 #if DEBUG
 sensor_msgs::ImagePtr LaneDetectorNode::getDetectColorImg()
 {
-	const Mat& image = lanedetector_ptr_->getRoiColorImg();
+	Mat image;
+	lanedetector_ptr_->getRoiColorImg(image);
 	return cv_bridge::CvImage(std_msgs::Header(), "bgr8", image).toImageMsg();
 }
 
 sensor_msgs::ImagePtr LaneDetectorNode::getDetectFinalBinImg()
 {
-	const Mat& image = lanedetector_ptr_->getRoiBinaryImg();
+	Mat image;
+	lanedetector_ptr_->getRoiBinaryImg(image);
 	return cv_bridge::CvImage(std_msgs::Header(), "mono8", image).toImageMsg();
 }
 
 sensor_msgs::ImagePtr LaneDetectorNode::getDetectGrayBinImg()
 {
-	const Mat& image = lanedetector_ptr_->getRoiGrayBinImg();
+	Mat image;
+	lanedetector_ptr_->getRoiGrayBinImg(image);
 	return cv_bridge::CvImage(std_msgs::Header(), "mono8", image).toImageMsg();
 }
 
 sensor_msgs::ImagePtr LaneDetectorNode::getDetectHsvSBinImg()
 {
-	const Mat& image = lanedetector_ptr_->getRoiHsvSBinImg();
+	Mat image;
+	lanedetector_ptr_->getRoiHsvSBinImg(image);
 	return cv_bridge::CvImage(std_msgs::Header(), "mono8", image).toImageMsg();
 }
 
@@ -130,17 +134,15 @@ std_msgs::String LaneDetectorNode::getPrintlog()
 
 #endif
 
-Mat LaneDetectorNode::parseRawimg(const sensor_msgs::ImageConstPtr& image)
+void LaneDetectorNode::parseRawimg(const sensor_msgs::ImageConstPtr& ros_img, Mat& cv_img)
 {
-	cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(image, sensor_msgs::image_encodings::BGR8);
+	cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(ros_img, sensor_msgs::image_encodings::BGR8);
 
-	Mat raw_img = cv_ptr->image;
+	cv_img = cv_ptr->image;
 
-	if (raw_img.empty()) {
+	if (cv_img.empty()) {
 		throw std::runtime_error("frame is empty!");
 	}
-
-	return raw_img;
 }
 
 void LaneDetectorNode::getRosParamForConstValue(int& width, int& height, int& steer_max_angle, int& detect_line_count)

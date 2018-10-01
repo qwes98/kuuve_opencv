@@ -15,8 +15,8 @@ void InToOutLaneDetector::setRightDetectOffset(const int offset) { right_detect_
 int InToOutLaneDetector::getHsvSBinThres() const { return hsv_s_bin_thres_; }
 int InToOutLaneDetector::getLeftDetectOffset() const { return left_detect_offset_; }
 int InToOutLaneDetector::getRightDetectOffset() const { return right_detect_offset_; }
-cv::Mat InToOutLaneDetector::getRoiGrayBinImg() const { return roi_bin_img_from_gray_; }
-cv::Mat InToOutLaneDetector::getRoiHsvSBinImg() const { return roi_bin_img_from_hsv_s_; }
+void InToOutLaneDetector::getRoiGrayBinImg(Mat& img) { img = roi_bin_img_from_gray_; }
+void InToOutLaneDetector::getRoiHsvSBinImg(Mat& img) { img = roi_bin_img_from_hsv_s_; }
 
 void InToOutLaneDetector::cvtToRoiBinaryImg(const cv::Point& left_top, const cv::Size& roi_size)
 {

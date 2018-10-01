@@ -38,8 +38,8 @@ public:
 	double getLateralFactor() const;
 	double getOnceDetectTime() const;
 	double getAvgDetectTime() const;
-	cv::Mat getRoiColorImg() const;
-	cv::Mat getRoiBinaryImg() const;
+	void getRoiColorImg(cv::Mat& img);
+	void getRoiBinaryImg(cv::Mat& img);
 
 	virtual void cvtToRoiBinaryImg(const cv::Point& left_top, const cv::Size& roi_size) = 0;
 

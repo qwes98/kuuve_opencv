@@ -23,7 +23,7 @@ private:
 	void getRosParamForConstValue(int& width, int& height, int& steer_max_angle, int& detect_line_count);
 	void getRosParamForUpdate();
 
-	cv::Mat parseRawimg(const sensor_msgs::ImageConstPtr& image);
+	void parseRawimg(const sensor_msgs::ImageConstPtr& ros_img, cv::Mat& cv_img);
 #if DEBUG
 	sensor_msgs::ImagePtr getDetectColorImg();
 	sensor_msgs::ImagePtr getDetectFinalBinImg();
