@@ -1,8 +1,9 @@
 detect:
   # should be true - (line_count == the number of y_offset elements)
-  line_count: 1   # the number of detection lines that will be used
+  line_count: 2   # the number of detection lines that will be used
   y_offset:
     - 25
+    - 80
   continuous_pixel: 30   # FIXME: the number of pixels that will be considered as one lane pixel
   offset:
     left: 0

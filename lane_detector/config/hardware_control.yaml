@@ -7,5 +7,9 @@ hardware_control:
     throttle: 7
   # control_error *= factor 
   factor:
-    yaw: 0.4
-    lateral: 0.8
+    yaw:
+      - 0.4   # top_line
+      - 0.4   # bottom_line
+    lateral:
+      - 0.8
+      - 0.8

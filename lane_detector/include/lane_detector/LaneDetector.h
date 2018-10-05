@@ -16,8 +16,8 @@ public:
 
 	void setGrayBinThres(const int bin_thres);
 	bool setDetectYOffset(const int detect_y_offset, const int index) throw(my_out_of_range);
-	void setYawFactor(const double yaw_factor);
-	void setLateralFactor(const double lateral_factor);
+	void setYawFactor(const double yaw_factor, const int index);
+	void setLateralFactor(const double lateral_factor, const int index);
 	void setRoiTopLocation(const int top_rate);
 	void setRoiBottomLocation(const int bottom_rate);
 //ADDED
@@ -34,10 +34,11 @@ public:
 	int getRoiBottomLocation() const;
 //ADDED
 	int getContiDetectPixel() const;
-	double getYawFactor() const;
-	double getLateralFactor() const;
+	double getYawFactor(const int index) const;
+	double getLateralFactor(const int index) const;
 	double getOnceDetectTime() const;
 	double getAvgDetectTime() const;
+	int getControlLineIndex() const;
 	void getRoiColorImg(cv::Mat& img);
 	void getRoiBinaryImg(cv::Mat& img);
 
@@ -66,6 +67,8 @@ protected:
 
 	bool haveToResetLeftPoint(const int index) const throw(my_out_of_range);
 	bool haveToResetRightPoint(const int index) const throw(my_out_of_range);
+
+	bool notDetectedAllLines(const int index) const throw(my_out_of_range);
 
 	virtual cv::Point detectLaneCenter(const int index) throw(my_out_of_range);
 
@@ -101,8 +104,12 @@ protected:
 
 	// LaneDetector
 	int gray_bin_thres_ = 210;
-	double yaw_factor_ = 0.5;
-	double lateral_factor_ = 0.5;
+	std::unique_ptr<double[]> yaw_factor_arr_;
+	std::unique_ptr<double[]> lateral_factor_arr_;
+
+	int top_line_index_ = 0;
+	int bottom_line_index_ = 1;
+	int control_line_index_ = 0;
 #if RC_CAR
 	const int STEER_MAX_ANGLE_ = 45;
 #elif SCALE_PLATFORM

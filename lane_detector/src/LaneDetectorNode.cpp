@@ -109,6 +109,8 @@ sensor_msgs::ImagePtr LaneDetectorNode::getDetectHsvSBinImg()
 
 std_msgs::String LaneDetectorNode::getPrintlog()
 {
+	int control_line_index = lanedetector_ptr_->getControlLineIndex();
+
 	string log;
  	log += "#### Algorithm Time #### \n";
 	log += (string)"it took : " + to_string(lanedetector_ptr_->getOnceDetectTime()) + "ms, " + "avg: " + to_string(lanedetector_ptr_->getAvgDetectTime()) + " fps : " + to_string(1000 / lanedetector_ptr_->getAvgDetectTime()) + '\n';
@@ -124,8 +126,8 @@ std_msgs::String LaneDetectorNode::getPrintlog()
 	log += "left_detect_offset: " + to_string(lanedetector_ptr_->getLeftDetectOffset()) + '\n';
 	log += "right_detect_offset: " + to_string(lanedetector_ptr_->getRightDetectOffset()) + '\n';
 	log += "steer_max_angle: " + to_string(lanedetector_ptr_->getSteerMaxAngle()) + '\n';
-	log += "yaw_factor: " + to_string(lanedetector_ptr_->getYawFactor() * 100) + "% -> " + to_string(lanedetector_ptr_->getYawFactor()) + '\n';
-	log += "lateral_factor: " + to_string(lanedetector_ptr_->getLateralFactor() * 100) + "% -> " + to_string(lanedetector_ptr_->getLateralFactor()) + '\n';
+	log += "yaw_factor: " + to_string(lanedetector_ptr_->getYawFactor(control_line_index) * 100) + "% -> " + to_string(lanedetector_ptr_->getYawFactor(control_line_index)) + '\n';
+	log += "lateral_factor: " + to_string(lanedetector_ptr_->getLateralFactor(control_line_index) * 100) + "% -> " + to_string(lanedetector_ptr_->getLateralFactor(control_line_index)) + '\n';
 	log += "---------------------------------\n";
 
 	std_msgs::String log_msg;
@@ -165,9 +167,10 @@ void LaneDetectorNode::getRosParamForUpdate()
 	nh_.getParam("/image/roi/bottom_location", paramArr[5]);
 	nh_.getParam("/detect/continuous_pixel", paramArr[6]);
 
-	double factor[2];
-	nh_.getParam("/hardware_control/factor/yaw", factor[0]);
-	nh_.getParam("/hardware_control/factor/lateral", factor[1]);
+	vector<double> yaw_factor;
+	vector<double> lateral_factor;
+	nh_.getParam("/hardware_control/factor/yaw", yaw_factor);
+	nh_.getParam("/hardware_control/factor/lateral", lateral_factor);
 	nh_.getParam("/hardware_control/platform/throttle", throttle_);
 
 	lanedetector_ptr_->setGrayBinThres(paramArr[0]);
@@ -178,8 +181,11 @@ void LaneDetectorNode::getRosParamForUpdate()
 	lanedetector_ptr_->setRoiBottomLocation(paramArr[5]);
 	lanedetector_ptr_->setContiDetectPixel(paramArr[6]);
 
-	lanedetector_ptr_->setYawFactor(factor[0]);
-	lanedetector_ptr_->setLateralFactor(factor[1]);
+	for(int i = 0; i < yaw_factor.size(); i++)
+	{
+		lanedetector_ptr_->setYawFactor(yaw_factor[i], i);
+		lanedetector_ptr_->setLateralFactor(lateral_factor[i], i);
+	}
 
 	vector<int> detect_y_offset;
 	nh_.getParam("/detect/y_offset", detect_y_offset);
@@ -238,9 +244,18 @@ ackermann_msgs::AckermannDriveStamped LaneDetectorNode::makeControlMsg()
 
 void LaneDetectorNode::printData()
 {
+	int control_line_index = lanedetector_ptr_->getControlLineIndex();
+
  	cout << "#### Algorithm Time ####" << endl;
 	cout << "it took : " << lanedetector_ptr_->getOnceDetectTime() << "ms, " << "avg: " << lanedetector_ptr_->getAvgDetectTime() << " fps : " << 1000 / lanedetector_ptr_->getAvgDetectTime() << endl;
 	cout << "#### Control ####" << endl;
+	cout << "control line: "; 
+	if(lanedetector_ptr_->getControlLineIndex() == 0)
+		cout << "top line" << endl;
+	else if(lanedetector_ptr_->getControlLineIndex() == 1)
+		cout << "bottom line" << endl;
+	else
+		cout << "have to check control_line_index_" << endl;
 	cout << "steering angle: " << lanedetector_ptr_->getRealSteerAngle() << endl;
 	cout << "throttle: " << throttle_ << endl;
 	cout << "#### Ros Param ####" << endl;
@@ -252,8 +267,7 @@ void LaneDetectorNode::printData()
 	cout << "left_detect_offset: " << lanedetector_ptr_->getLeftDetectOffset() << endl;
 	cout << "right_detect_offset: " << lanedetector_ptr_->getRightDetectOffset() << endl;
 	cout << "steer_max_angle: " << lanedetector_ptr_->getSteerMaxAngle() << endl;
-	cout << "yaw_factor: " << lanedetector_ptr_->getYawFactor() * 100 << "% -> " << lanedetector_ptr_->getYawFactor() << endl;
-	cout << "lateral_factor: " << lanedetector_ptr_->getLateralFactor() * 100 << "% -> " << lanedetector_ptr_->getLateralFactor() << endl;
+	cout << "yaw_factor: " << lanedetector_ptr_->getYawFactor(control_line_index) * 100 << "% -> " << lanedetector_ptr_->getYawFactor(control_line_index) << endl;
 	cout << "---------------------------------" << endl;
 }
 #endif

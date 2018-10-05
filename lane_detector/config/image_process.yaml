@@ -4,7 +4,7 @@ image:
     height: 270
   # 0 is a top of raw_img and 100 is a bottom of raw_img
   roi:
-    top_location: 30
+    top_location: 10
     bottom_location: 80
   # binary threshold
   binary_thres:
