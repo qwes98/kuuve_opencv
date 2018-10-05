@@ -14,12 +14,10 @@ public:
 
 	bool getLeftResetFlag() const;
 	bool getRightResetFlag() const;
-//ADDED
 	int getContiDetectPixel() const;
 
 	void setLeftResetFlag(const bool left_reset_flag);
 	void setRightResetFlag(const bool right_reset_flag);
-//ADDED
 	void setContiDetectPixel(const int continuous_detect_pixel);
 
 	/**
@@ -87,13 +85,11 @@ public:
 	int find_RN_x_in2out(const cv::Mat& binary_img, const int pre_point, const int detect_y_offset, const int line_pixel_threshold, const int offset);
 
 private:
-//ADDED
 	bool laneIsDiscontinuous(const cv::Mat& binary_img, const int pre_point, const int detect_y_offset);
 
 private:
 	bool left_reset_flag_, right_reset_flag_;
 
-//ADDED
 	int continuous_detect_pixel_ = 30;
 
 };

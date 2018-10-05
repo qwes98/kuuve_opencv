@@ -18,8 +18,8 @@ void LinePointDetector::setContiDetectPixel(const int continuous_detect_pixel) {
 bool LinePointDetector::laneIsDiscontinuous(const Mat& binary_img, const int pre_point, const int detect_y_offset)
 {
 	for(int i = 0; i < continuous_detect_pixel_; i++) {
-			if(binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100, pre_point + (i - continuous_detect_pixel_ / 2)) == 255)
-				return false;
+		if(binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100, pre_point + (i - continuous_detect_pixel_ / 2)) == 255)
+			return false;
 	}
 
 	return true;
