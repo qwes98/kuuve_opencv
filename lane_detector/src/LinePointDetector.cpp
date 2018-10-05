@@ -15,10 +15,10 @@ void LinePointDetector::setRightResetFlag(const bool right_reset_flag) { right_r
 void LinePointDetector::setContiDetectPixel(const int continuous_detect_pixel) { continuous_detect_pixel_ = continuous_detect_pixel; }
 
 
-bool LinePointDetector::laneIsDiscontinuous(const Mat& binary_img, const int pre_point, const int detect_y_offset)
+bool LinePointDetector::laneIsDiscontinuous(const Mat& binary_img, const int pre_point_x, const int detect_y_offset)
 {
 	for(int i = 0; i < continuous_detect_pixel_; i++) {
-		if(binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100, pre_point + (i - continuous_detect_pixel_ / 2)) == 255)
+		if(binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100, pre_point_x + (i - continuous_detect_pixel_ / 2)) == 255)
 			return false;
 	}
 
@@ -30,9 +30,9 @@ bool LinePointDetector::laneIsDiscontinuous(const Mat& binary_img, const int pre
  * 결과적으로 왼쪽 차선에 해당하는 흰색 픽셀을 찾게 된다
  *
  */
-int LinePointDetector::find_L0_x_out2in(const Mat& binary_img, const int detect_y_offset, const int last_point)
+int LinePointDetector::find_L0_x_out2in(const Mat& binary_img, const int detect_y_offset, const int last_point_x)
 {
-	int l0_x = last_point;
+	int l0_x = last_point_x;
 
 	for (int i = continuous_detect_pixel_ / 2 + 2; i < binary_img.cols - (continuous_detect_pixel_ / 2 + 2); i++)
 	{
@@ -51,9 +51,9 @@ int LinePointDetector::find_L0_x_out2in(const Mat& binary_img, const int detect_
  * 결과적으로 오른쪽 차선에 해당하는 흰색 픽셀을 찾게 된다
  *
  */
-int LinePointDetector::find_R0_x_out2in(const Mat& binary_img, const int detect_y_offset, const int last_point)
+int LinePointDetector::find_R0_x_out2in(const Mat& binary_img, const int detect_y_offset, const int last_point_x)
 {
-	int r0_x = last_point;
+	int r0_x = last_point_x;
 
 	for (int i = continuous_detect_pixel_ / 2 + 2; i < binary_img.cols - (continuous_detect_pixel_ / 2 + 2); i++)
 	{
@@ -76,12 +76,12 @@ int LinePointDetector::find_R0_x_out2in(const Mat& binary_img, const int detect_
  * 만약 연속적으로 존재하지 않는다고 판단되면 초기점을 찾는 방법으로 차선의 점을 찾을 수 밖에 없다
  *
  */
-int LinePointDetector::find_LN_x_out2in(const Mat& binary_img, const int pre_point, const int detect_y_offset, const int line_pixel_threshold)
+int LinePointDetector::find_LN_x_out2in(const Mat& binary_img, const int pre_point_x, const int detect_y_offset, const int line_pixel_threshold)
 {
-	int Left_N_x = pre_point;
+	int Left_N_x = pre_point_x;
 
 		// 불연속 선 이라면
-	if (laneIsDiscontinuous(binary_img, pre_point, detect_y_offset))
+	if (laneIsDiscontinuous(binary_img, pre_point_x, detect_y_offset))
 	{
 		for (int i = continuous_detect_pixel_ / 2 + 2; i < binary_img.cols - (continuous_detect_pixel_ / 2 + 2); i++)
 		{
@@ -102,7 +102,7 @@ int LinePointDetector::find_LN_x_out2in(const Mat& binary_img, const int pre_poi
 			if (binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100, i) == 255)
 			{
 
-				if ((i > pre_point + line_pixel_threshold) || (i < pre_point - line_pixel_threshold))	continue;
+				if ((i > pre_point_x + line_pixel_threshold) || (i < pre_point_x - line_pixel_threshold))	continue;
 
 				Left_N_x = i;
 				break;
@@ -114,12 +114,12 @@ int LinePointDetector::find_LN_x_out2in(const Mat& binary_img, const int pre_poi
 	return Left_N_x;
 }
 
-int LinePointDetector::find_RN_x_out2in(const Mat& binary_img, const int pre_point, const int detect_y_offset, const int line_pixel_threshold)
+int LinePointDetector::find_RN_x_out2in(const Mat& binary_img, const int pre_point_x, const int detect_y_offset, const int line_pixel_threshold)
 {
-	int Right_N_x = pre_point;
+	int Right_N_x = pre_point_x;
 
 	// 불연속 선 이라면
-	if (laneIsDiscontinuous(binary_img, pre_point, detect_y_offset))
+	if (laneIsDiscontinuous(binary_img, pre_point_x, detect_y_offset))
 	{
 		for (int i = continuous_detect_pixel_ / 2 + 2; i < binary_img.cols - (continuous_detect_pixel_ / 2 + 2); i++)
 		{
@@ -139,7 +139,7 @@ int LinePointDetector::find_RN_x_out2in(const Mat& binary_img, const int pre_poi
 		{
 			if (binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100, binary_img.cols - i) == 255)
 			{
-				if ((binary_img.cols - i > pre_point + line_pixel_threshold) || (binary_img.cols - i < pre_point - line_pixel_threshold))	continue;
+				if ((binary_img.cols - i > pre_point_x + line_pixel_threshold) || (binary_img.cols - i < pre_point_x - line_pixel_threshold))	continue;
 
 				Right_N_x = binary_img.cols - i;
 				break;
@@ -150,9 +150,9 @@ int LinePointDetector::find_RN_x_out2in(const Mat& binary_img, const int pre_poi
 	return Right_N_x;
 }
 
-int LinePointDetector::find_L0_x_in2out(const Mat& binary_img, const int detect_y_offset, const int last_point, const int offset)
+int LinePointDetector::find_L0_x_in2out(const Mat& binary_img, const int detect_y_offset, const int last_point_x, const int offset)
 {
-	int l0_x = last_point;
+	int l0_x = last_point_x;
 
 	for (int i = binary_img.cols / 2 + offset; i > continuous_detect_pixel_ / 2 + 2; i--)
 	{
@@ -166,9 +166,9 @@ int LinePointDetector::find_L0_x_in2out(const Mat& binary_img, const int detect_
 	return l0_x;
 }
 
-int LinePointDetector::find_R0_x_in2out(const Mat& binary_img, const int detect_y_offset, const int last_point, const int offset)
+int LinePointDetector::find_R0_x_in2out(const Mat& binary_img, const int detect_y_offset, const int last_point_x, const int offset)
 {
-	int r0_x = last_point;
+	int r0_x = last_point_x;
 
 	for (int i = binary_img.cols / 2 - offset; i < binary_img.cols - (continuous_detect_pixel_ / 2 + 2); i++)
 	{
@@ -182,12 +182,12 @@ int LinePointDetector::find_R0_x_in2out(const Mat& binary_img, const int detect_
 	return r0_x;
 }
 
-int LinePointDetector::find_LN_x_in2out(const Mat& binary_img, const int pre_point, const int detect_y_offset, const int line_pixel_threshold, const int offset)
+int LinePointDetector::find_LN_x_in2out(const Mat& binary_img, const int pre_point_x, const int detect_y_offset, const int line_pixel_threshold, const int offset)
 {
-	int Left_N_x = pre_point;
+	int Left_N_x = pre_point_x;
 
 	// 불연속 선 이라면
-	if (laneIsDiscontinuous(binary_img, pre_point, detect_y_offset))
+	if (laneIsDiscontinuous(binary_img, pre_point_x, detect_y_offset))
 	{
 		for (int i = binary_img.cols / 2 + offset; i > continuous_detect_pixel_ / 2 + 2; i--)
 		{
@@ -208,7 +208,7 @@ int LinePointDetector::find_LN_x_in2out(const Mat& binary_img, const int pre_poi
 			if (binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100, i) == 255)
 			{
 
-				if ((i > pre_point + line_pixel_threshold) || (i < pre_point - line_pixel_threshold))	continue;
+				if ((i > pre_point_x + line_pixel_threshold) || (i < pre_point_x - line_pixel_threshold))	continue;
 
 				Left_N_x = i;
 				break;
@@ -220,12 +220,12 @@ int LinePointDetector::find_LN_x_in2out(const Mat& binary_img, const int pre_poi
 	return Left_N_x;
 }
 
-int LinePointDetector::find_RN_x_in2out(const Mat& binary_img, const int pre_point, const int detect_y_offset, const int line_pixel_threshold, const int offset)
+int LinePointDetector::find_RN_x_in2out(const Mat& binary_img, const int pre_point_x, const int detect_y_offset, const int line_pixel_threshold, const int offset)
 {
-	int Right_N_x = pre_point;
+	int Right_N_x = pre_point_x;
 
 	// 불연속 선 이라면
-	if (laneIsDiscontinuous(binary_img, pre_point, detect_y_offset))
+	if (laneIsDiscontinuous(binary_img, pre_point_x, detect_y_offset))
 	{
 		for (int i = binary_img.cols / 2 - offset; i < binary_img.cols - (continuous_detect_pixel_ / 2 + 2); i++)
 		{
@@ -245,7 +245,7 @@ int LinePointDetector::find_RN_x_in2out(const Mat& binary_img, const int pre_poi
 		{
 			if (binary_img.at<uchar>(binary_img.rows * detect_y_offset / 100, i) == 255)
 			{
-				if ((i > pre_point + line_pixel_threshold) || (i < pre_point - line_pixel_threshold))	continue;
+				if ((i > pre_point_x + line_pixel_threshold) || (i < pre_point_x - line_pixel_threshold))	continue;
 
 				Right_N_x = i;
 				break;
