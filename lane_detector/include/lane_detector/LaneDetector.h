@@ -154,6 +154,12 @@ protected:
 	bool haveToResetLeftPoint(const int index) const throw(my_out_of_range);
 	bool haveToResetRightPoint(const int index) const throw(my_out_of_range);
 
+	/**
+	 * @brief 차선이 제대로 인식되었는지 판단하는 함수
+	 * 
+	 * @details 위의 haveToReset* 함수를 wrapping한 함수로, 왼쪽과 오른쪽 모두 제대로 인식되었는지를 확인한다.
+	 * 
+	 */
 	bool notDetectedAllLines(const int index) const throw(my_out_of_range);
 
 	/**
