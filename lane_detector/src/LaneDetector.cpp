@@ -265,11 +265,13 @@ void LaneDetector::findSteering()
     else
     {
       control_line_index_ = bottom_line_index_;
+      cout << "bottom line if statement" << endl;
     }
   }
   else
   {
     control_line_index_ = top_line_index_;
+    cout << "top line if statement" << endl;
   }
 
   lane_middle_arr_[control_line_index_] = detectLaneCenter(control_line_index_);
