@@ -250,9 +250,9 @@ void LaneDetectorNode::printData()
 	cout << "it took : " << lanedetector_ptr_->getOnceDetectTime() << "ms, " << "avg: " << lanedetector_ptr_->getAvgDetectTime() << " fps : " << 1000 / lanedetector_ptr_->getAvgDetectTime() << endl;
 	cout << "#### Control ####" << endl;
 	cout << "control line: "; 
-	if(lanedetector_ptr_->getControlLineIndex() == 0)
+	if(control_line_index == 0)
 		cout << "top line" << endl;
-	else if(lanedetector_ptr_->getControlLineIndex() == 1)
+	else if(control_line_index == 1)
 		cout << "bottom line" << endl;
 	else
 		cout << "have to check control_line_index_" << endl;

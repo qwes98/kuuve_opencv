@@ -274,7 +274,9 @@ void LaneDetector::findSteering()
     cout << "top line if statement" << endl;
   }
 
-  lane_middle_arr_[control_line_index_] = detectLaneCenter(control_line_index_);
+  for(int index = 0; index < DETECT_LINE_COUNT_; index++)
+    lane_middle_arr_[index] = detectLaneCenter(index);
+
   yaw_error_ = calculateYawError(control_line_index_);
   lateral_error_ = calculateLateralError(control_line_index_);
 }
